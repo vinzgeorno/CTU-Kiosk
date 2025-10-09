@@ -1,0 +1,251 @@
+.payment-page {
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.payment-title {
+  text-align: center;
+  color: #333;
+  margin-bottom: 40px;
+  font-size: 36px;
+}
+
+.payment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.payment-summary h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.summary-card {
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 25px;
+  border: 2px solid #e9ecef;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-row.total {
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 2px solid #dee2e6;
+  font-size: 20px;
+}
+
+.amount {
+  color: #28a745;
+  font-size: 24px;
+}
+
+.payment-methods h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.method-cards {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.method-card {
+  flex: 1;
+  background: white;
+  border: 3px solid #e9ecef;
+  border-radius: 15px;
+  padding: 30px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.method-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+.method-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.05) 0%, 
+    rgba(118, 75, 162, 0.05) 100%);
+}
+
+.method-icon {
+  font-size: 48px;
+  color: #667eea;
+  margin-bottom: 10px;
+}
+
+.method-card span {
+  display: block;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.payment-interface {
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 20px;
+}
+
+.payment-interface h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 24px;
+}
+
+.bill-buttons, .coin-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.bill-button, .coin-button {
+  background: white;
+  border: 2px solid #28a745;
+  color: #28a745;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bill-button:hover, .coin-button:hover {
+  background: #28a745;
+  color: white;
+  transform: scale(1.05);
+}
+
+.card-demo {
+  text-align: center;
+  padding: 20px;
+}
+
+.card-demo p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.card-pay-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  font-size: 18px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.card-pay-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.payment-status {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 2px solid #e9ecef;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 18px;
+}
+
+.status-row strong {
+  color: #333;
+}
+
+.status-row strong.sufficient {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.status-row.change {
+  border-top: 2px solid #e9ecef;
+  margin-top: 10px;
+  padding-top: 15px;
+  color: #17a2b8;
+}
+
+.confirm-payment-button {
+  width: 100%;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 18px;
+  font-size: 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-payment-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+}
+
+.confirm-payment-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #6c757d;
+}
+
+.processing-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

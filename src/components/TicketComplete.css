@@ -1,0 +1,324 @@
+.ticket-complete {
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.complete-container {
+  max-width: 800px;
+  width: 100%;
+}
+
+.success-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.success-icon {
+  font-size: 80px;
+  color: #28a745;
+  margin-bottom: 20px;
+  animation: checkmark 0.6s ease;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-header h1 {
+  color: white;
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.success-header p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+}
+
+.final-ticket {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  margin-bottom: 30px;
+}
+
+.ticket-design {
+  border: 2px dashed #dee2e6;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.ticket-top {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.company-logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-circle {
+  width: 50px;
+  height: 50px;
+  background: white;
+  color: #667eea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.company-logo span {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.ticket-type {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.ticket-main {
+  padding: 30px;
+}
+
+.visitor-photo {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 25px;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 4px solid #f0f0f0;
+}
+
+.visitor-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.visitor-details {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.visitor-details h2 {
+  color: #333;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.detail-item {
+  text-align: left;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.detail-label {
+  display: block;
+  color: #666;
+  font-size: 12px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  display: block;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.access-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px;
+  background: linear-gradient(135deg, 
+    rgba(102, 126, 234, 0.05) 0%, 
+    rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 15px;
+  margin-bottom: 25px;
+}
+
+.building-access h3 {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.building-name {
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.access-level {
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.price-info {
+  text-align: right;
+}
+
+.price-label {
+  display: block;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.price-value {
+  display: block;
+  color: #28a745;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.ticket-footer {
+  border-top: 2px dashed #dee2e6;
+  padding-top: 20px;
+}
+
+.qrcode-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.qr-code {
+  width: 100px;
+  height: 100px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+}
+
+.qrcode-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: #333;
+}
+
+.instructions {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.instructions p {
+  margin: 5px 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.download-button, .new-transaction-button {
+  flex: 1;
+  padding: 18px;
+  font-size: 18px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.download-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+}
+
+.download-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+}
+
+.download-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.new-transaction-button {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.new-transaction-button:hover {
+  background: #667eea;
+  color: white;
+}
+
+.spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.print-notice {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  color: white;
+}
+
+.print-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.print-notice p {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
