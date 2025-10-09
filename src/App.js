@@ -5,6 +5,7 @@ import CameraCapture from './components/CameraCapture';
 import BuildingSelection from './components/BuildingSelection';
 import PaymentPage from './components/PaymentPage';
 import TicketComplete from './components/TicketComplete';
+import DatabaseViewer from './components/DatabaseViewer';
 import './App.css';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/building-selection" element={<BuildingSelection userData={userData} setUserData={setUserData} />} />
           <Route path="/payment" element={<PaymentPage userData={userData} setUserData={setUserData} />} />
           <Route path="/ticket-complete" element={<TicketComplete userData={userData} setUserData={setUserData} />} />
+          <Route path="/admin/database" element={<DatabaseViewer />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

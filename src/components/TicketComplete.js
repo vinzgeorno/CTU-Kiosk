@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 import { FaCheckCircle, FaDownload, FaHome, FaPrint } from 'react-icons/fa';
 import ThermalPrinter from '../utils/thermalPrinter';
+import database from '../utils/indexedDatabase';
 import './TicketComplete.css';
 
 function TicketComplete({ userData, setUserData }) {
@@ -15,6 +16,9 @@ function TicketComplete({ userData, setUserData }) {
   const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
+    // Initialize database and save ticket data
+    initializeAndSaveTicket();
+    
     // Generate QR code when component mounts
     generateQRCode();
     
@@ -24,7 +28,63 @@ function TicketComplete({ userData, setUserData }) {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initializeAndSaveTicket = async () => {
+    try {
+      // Initialize database
+      await database.initialize();
+      
+      // Save ticket data to SQLite database
+      await saveTicketToDatabase();
+    } catch (error) {
+      console.error('Error initializing database or saving ticket:', error);
+    }
+  };
+
+  const saveTicketToDatabase = async () => {
+    try {
+      const currentDate = new Date();
+      const expiryDate = new Date();
+      expiryDate.setHours(23, 59, 59, 999); // End of current day
+
+      const qrData = {
+        transactionId: userData.transactionId,
+        name: userData.name,
+        facility: userData.selectedBuilding?.name,
+        amount: userData.ticketPrice,
+        date: currentDate.toISOString(),
+        validUntil: expiryDate.getTime()
+      };
+
+      const ticketData = {
+        referenceNumber: userData.transactionId,
+        name: userData.name,
+        age: userData.age,
+        capturedImage: userData.capturedImage,
+        facility: userData.selectedBuilding?.name,
+        paymentAmount: userData.ticketPrice,
+        originalPrice: userData.originalPrice || userData.ticketPrice,
+        hasDiscount: userData.hasDiscount || false,
+        dateCreated: currentDate.toISOString(),
+        dateExpiry: expiryDate.toISOString(),
+        qrCodeData: JSON.stringify(qrData),
+        paymentMethod: userData.paymentMethod || 'cash',
+        amountInserted: userData.amountInserted || userData.ticketPrice,
+        changeGiven: userData.changeGiven || 0
+      };
+
+      const result = await database.insertTicket(ticketData);
+      
+      if (result.success) {
+        console.log('Ticket saved to database successfully:', result.referenceNumber);
+      } else {
+        console.error('Failed to save ticket to database:', result.error);
+      }
+    } catch (error) {
+      console.error('Error saving ticket to database:', error);
+    }
+  };
 
   const generateQRCode = async () => {
     try {

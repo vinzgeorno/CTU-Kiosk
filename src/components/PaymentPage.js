@@ -21,25 +21,19 @@ function PaymentPage({ userData, setUserData }) {
     if (insertedAmount >= userData.ticketPrice) {
       setIsProcessing(true);
       
-      // Save transaction to JSON database
-      const transaction = {
-        id: 'TKT-' + Date.now(),
-        timestamp: new Date().toISOString(),
-        name: userData.name,
-        building: userData.selectedBuilding.name,
-        amount: userData.ticketPrice,
-        paymentMethod: paymentMethod,
-        image: userData.capturedImage
-      };
-
-      // Store in localStorage as JSON database
-      const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-      existingTransactions.push(transaction);
-      localStorage.setItem('transactions', JSON.stringify(existingTransactions));
-
+      // Calculate change
+      const changeAmount = insertedAmount - userData.ticketPrice;
+      
+      // Create transaction ID
+      const transactionId = 'TKT-' + Date.now();
+      
+      // Update user data with payment information
       setUserData({
         ...userData,
-        transactionId: transaction.id
+        transactionId: transactionId,
+        paymentMethod: paymentMethod,
+        amountInserted: insertedAmount,
+        changeGiven: changeAmount
       });
 
       // Simulate payment processing
