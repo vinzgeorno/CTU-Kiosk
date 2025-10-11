@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import database from '../utils/indexedDatabase';
-import { FaSearch, FaDownload, FaEye, FaCalendarAlt, FaChartBar } from 'react-icons/fa';
+import { FaSearch, FaDownload, FaEye, FaCalendarAlt, FaChartBar, FaCloud } from 'react-icons/fa';
 import './DatabaseViewer.css';
 
 function DatabaseViewer() {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -178,6 +180,9 @@ function DatabaseViewer() {
       <div className="viewer-header">
         <h1>CTU-Kiosk Database Viewer</h1>
         <div className="export-buttons">
+          <button onClick={() => navigate('/admin/sync')} className="export-btn sync">
+            <FaCloud /> Cloud Sync
+          </button>
           <button onClick={exportData} className="export-btn">
             <FaDownload /> Export JSON
           </button>

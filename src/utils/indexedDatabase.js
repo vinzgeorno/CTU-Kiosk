@@ -42,6 +42,7 @@ class IndexedDatabase {
           ticketStore.createIndex('facility', 'facility', { unique: false });
           ticketStore.createIndex('date_created', 'date_created', { unique: false });
           ticketStore.createIndex('transaction_status', 'transaction_status', { unique: false });
+          ticketStore.createIndex('synced_to_cloud', 'synced_to_cloud', { unique: false });
         }
 
         // Create facilities object store
@@ -142,6 +143,8 @@ class IndexedDatabase {
         date_expiry: dateExpiry,
         qr_code_data: qrCodeData || null,
         transaction_status: 'completed',
+        synced_to_cloud: false,
+        synced_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

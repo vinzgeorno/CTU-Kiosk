@@ -43,6 +43,14 @@
   background: #45a049;
 }
 
+.export-btn.sync {
+  background: #2196F3;
+}
+
+.export-btn.sync:hover {
+  background: #1976D2;
+}
+
 .export-btn.csv {
   background: #FF9800;
 }

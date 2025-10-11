@@ -6,6 +6,7 @@ import BuildingSelection from './components/BuildingSelection';
 import PaymentPage from './components/PaymentPage';
 import TicketComplete from './components/TicketComplete';
 import DatabaseViewer from './components/DatabaseViewer';
+import SyncManager from './components/SyncManager';
 import './App.css';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
           <Route path="/payment" element={<PaymentPage userData={userData} setUserData={setUserData} />} />
           <Route path="/ticket-complete" element={<TicketComplete userData={userData} setUserData={setUserData} />} />
           <Route path="/admin/database" element={<DatabaseViewer />} />
+          <Route path="/admin/sync" element={<SyncManager />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
