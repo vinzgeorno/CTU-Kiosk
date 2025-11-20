@@ -88,14 +88,8 @@ function TicketComplete({ userData, setUserData }) {
 
   const generateQRCode = async () => {
     try {
-      const qrData = JSON.stringify({
-        transactionId: userData.transactionId,
-        name: userData.name,
-        facility: userData.selectedBuilding?.name,
-        amount: userData.ticketPrice,
-        date: new Date().toISOString(),
-        validUntil: new Date().setHours(23, 59, 59, 999)
-      });
+      // Only include the transaction ID in the QR code
+      const qrData = userData.transactionId;
       
       const qrCodeURL = await QRCode.toDataURL(qrData, {
         width: 150,
