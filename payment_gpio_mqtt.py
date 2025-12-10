@@ -53,6 +53,7 @@ def dispense_change():
 # --------------- GPIO EVENT CALLBACKS ---------------
 
 def bill_inserted_callback(channel):
+    print(f'[CALLBACK] Bill acceptor pulse detected on GPIO {channel} (value={GPIO.input(channel)})')
     payload = json.dumps({
         "amount": 20,
         "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
@@ -61,6 +62,7 @@ def bill_inserted_callback(channel):
     print('Bill inserted, published to MQTT')
 
 def coin_inserted_callback(channel):
+    print(f'[CALLBACK] Coin acceptor pulse detected on GPIO {channel} (value={GPIO.input(channel)})')
     payload = json.dumps({
         "amount": 5,
         "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
@@ -114,6 +116,10 @@ mqtt_client.loop_start()
 
 try:
     while True:
-        time.sleep(1)
+        # Print pin states every 0.5s for debug
+        bill_state = GPIO.input(BILL_ACCEPTOR_PIN)
+        coin_state = GPIO.input(COIN_ACCEPTOR_PIN)
+        print(f'[DEBUG] Bill GPIO {BILL_ACCEPTOR_PIN}: {bill_state} | Coin GPIO {COIN_ACCEPTOR_PIN}: {coin_state}')
+        time.sleep(0.5)
 except KeyboardInterrupt:
     cleanup(None, None)
