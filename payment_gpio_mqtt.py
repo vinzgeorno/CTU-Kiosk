@@ -27,7 +27,7 @@ GPIO.setmode(GPIO.BCM)
 
 # Using pull-downs, expecting RISING pulses from acceptors
 GPIO.setup(BILL_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(COIN_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(COIN_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # --------------- MQTT CALLBACKS ---------------
 
@@ -120,6 +120,7 @@ try:
         bill_state = GPIO.input(BILL_ACCEPTOR_PIN)
         coin_state = GPIO.input(COIN_ACCEPTOR_PIN)
         print(f'[DEBUG] Bill GPIO {BILL_ACCEPTOR_PIN}: {bill_state} | Coin GPIO {COIN_ACCEPTOR_PIN}: {coin_state}')
-        time.sleep(0.5)
+        print(f'[RAW] Coin GPIO input: {GPIO.input(COIN_ACCEPTOR_PIN)}')
+        time.sleep(0.2)
 except KeyboardInterrupt:
     cleanup(None, None)

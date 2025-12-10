@@ -1,9 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMoneyBillWave, FaCoins } from 'react-icons/fa';
 import './PaymentPage.css';
 
 function PaymentPage({ userData, setUserData }) {
+  const [wsConnected, setWsConnected] = useState(false);
+  const [hardwareMode, setHardwareMode] = useState(false);
+
+  useEffect(() => {
+    const ws = new window.WebSocket('ws://localhost:8081');
+    ws.onopen = () => setWsConnected(true);
+    ws.onclose = () => setWsConnected(false);
+    ws.onerror = () => setWsConnected(false);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'coin' || data.type === 'bill') {
+          setInsertedAmount(prev => prev + (data.amount || 0));
+          setHardwareMode(true);
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    };
+    return () => ws.close();
+  }, []);
+
   const navigate = useNavigate();
   const [insertedAmount, setInsertedAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -93,7 +115,7 @@ function PaymentPage({ userData, setUserData }) {
             <div className="payment-interface">
               <h2>Insert Payment</h2>
               
-              {paymentMethod === 'bills' && (
+              {paymentMethod === 'bills' && !hardwareMode && (
                 <div className="bill-buttons">
                   <button onClick={() => insertMoney(20)} className="bill-button">₱20</button>
                   <button onClick={() => insertMoney(50)} className="bill-button">₱50</button>
@@ -102,12 +124,17 @@ function PaymentPage({ userData, setUserData }) {
                 </div>
               )}
 
-              {paymentMethod === 'coins' && (
+              {paymentMethod === 'coins' && !hardwareMode && (
                 <div className="coin-buttons">
                   <button onClick={() => insertMoney(1)} className="coin-button">₱1</button>
                   <button onClick={() => insertMoney(5)} className="coin-button">₱5</button>
                   <button onClick={() => insertMoney(10)} className="coin-button">₱10</button>
                   <button onClick={() => insertMoney(20)} className="coin-button">₱20</button>
+                </div>
+              )}
+              {hardwareMode && (
+                <div className="hardware-mode-info">
+                  <em>Waiting for physical coins/bills...</em>
                 </div>
               )}
 
