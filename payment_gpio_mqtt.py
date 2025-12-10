@@ -27,7 +27,7 @@ GPIO.setmode(GPIO.BCM)
 
 # Using pull-downs, expecting RISING pulses from acceptors
 GPIO.setup(BILL_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(COIN_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(COIN_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # --------------- MQTT CALLBACKS ---------------
 
@@ -61,14 +61,15 @@ def bill_inserted_callback(channel):
     mqtt_client.publish(TOPIC_BILL, payload)
     print('Bill inserted, published to MQTT')
 
-def coin_inserted_callback(channel):
-    print(f'[CALLBACK] Coin acceptor pulse detected on GPIO {channel} (value={GPIO.input(channel)})')
-    payload = json.dumps({
-        "amount": 5,
-        "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-    })
-    mqtt_client.publish(TOPIC_COIN, payload)
-    print('Coin inserted, published to MQTT')
+def coin_pulse_callback(channel):
+    global pulse_count, last_pulse_time
+    now = time.time()
+    # Simple debounce: ignore pulses too close together (<5ms)
+    if now - last_pulse_time < 0.005:
+        return
+    pulse_count += 1
+    last_pulse_time = now
+    print(f"Pulse! current burst pulses: {pulse_count}")
 
 # --------------- MQTT CLIENT SETUP ---------------
 
@@ -88,9 +89,9 @@ try:
     )
     GPIO.add_event_detect(
         COIN_ACCEPTOR_PIN,
-        GPIO.RISING,
-        callback=coin_inserted_callback,
-        bouncetime=200
+        GPIO.FALLING,
+        callback=coin_pulse_callback,
+        bouncetime=5
     )
 except RuntimeError as e:
     print("Failed to add GPIO edge detection:", e)
@@ -116,11 +117,26 @@ mqtt_client.loop_start()
 
 try:
     while True:
+        now = time.time()
+        # --- COIN BURST GROUPING LOGIC ---
+        global pulse_count, last_pulse_time
+        if pulse_count > 0 and (now - last_pulse_time) > COIN_GAP_TIMEOUT:
+            pulses = pulse_count
+            pulse_count = 0
+            value = PULSE_TO_VALUE.get(pulses, None)
+            if value is None:
+                print(f"Unknown coin: {pulses} pulses")
+            else:
+                payload = json.dumps({
+                    "amount": value,
+                    "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+                })
+                mqtt_client.publish(TOPIC_COIN, payload)
+                print(f"Coin detected: {pulses} pulses -> +{value} credit. Published to MQTT.")
         # Print pin states every 0.5s for debug
         bill_state = GPIO.input(BILL_ACCEPTOR_PIN)
         coin_state = GPIO.input(COIN_ACCEPTOR_PIN)
         print(f'[DEBUG] Bill GPIO {BILL_ACCEPTOR_PIN}: {bill_state} | Coin GPIO {COIN_ACCEPTOR_PIN}: {coin_state}')
-        print(f'[RAW] Coin GPIO input: {GPIO.input(COIN_ACCEPTOR_PIN)}')
-        time.sleep(0.2)
+        time.sleep(0.5)
 except KeyboardInterrupt:
     cleanup(None, None)
