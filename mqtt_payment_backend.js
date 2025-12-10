@@ -31,4 +31,18 @@ function dispenseChange() {
   console.log('Dispense command sent');
 }
 
-module.exports = { dispenseChange };
+module.exports = {
+  initMqtt() { return client; },
+  dispenseChange
+};
+
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 8081 });
+
+function broadcast(data) {
+  wss.clients.forEach(c => {
+    if (c.readyState === WebSocket.OPEN) {
+      c.send(JSON.stringify(data));
+    }
+  });
+}

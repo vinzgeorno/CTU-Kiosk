@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 # GPIO pin numbers (BCM mode)
 BILL_ACCEPTOR_PIN = 17   # Pin 11
 COIN_ACCEPTOR_PIN = 27   # Pin 23
-SERVO_PIN = 18           # Pin 12
+#SERVO_PIN = 18           # Pin 12
 
 # MQTT config
 BROKER = 'localhost'  # or IP of your MQTT broker
@@ -25,9 +25,9 @@ TOPIC_DISPENSE = 'ctu-kiosk/payment/dispense'
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(BILL_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(COIN_ACCEPTOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(SERVO_PIN, GPIO.OUT)
-servo = GPIO.PWM(SERVO_PIN, 50)
-servo.start(0)
+#GPIO.setup(SERVO_PIN, GPIO.OUT)
+#servo = GPIO.PWM(SERVO_PIN, 50)
+#servo.start(0)
 
 # MQTT callbacks
 def on_connect(client, userdata, flags, rc):
