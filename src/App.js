@@ -7,6 +7,7 @@ import PaymentPage from './components/PaymentPage';
 import TicketComplete from './components/TicketComplete';
 import DatabaseViewer from './components/DatabaseViewer';
 import SyncManager from './components/SyncManager';
+import DeviceManagement from './components/DeviceManagement';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/ticket-complete" element={<TicketComplete userData={userData} setUserData={setUserData} />} />
           <Route path="/admin/database" element={<DatabaseViewer />} />
           <Route path="/admin/sync" element={<SyncManager />} />
+          <Route path="/admin/devices" element={<DeviceManagement />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

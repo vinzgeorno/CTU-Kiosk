@@ -1,0 +1,786 @@
+.device-management {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.device-container {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.device-title {
+  color: #2c3e50;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.device-status h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 0.5rem;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.device-card-container {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.device-card {
+  background: #fff;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 4px solid #e0e0e0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.device-card.connected {
+  border-left-color: #2ecc71;
+}
+
+.device-card.disconnected {
+  border-left-color: #e74c3c;
+}
+
+.device-card-container.expanded .device-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.device-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #3498db;
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 1rem;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 0 0 2px white;
+}
+
+.status-icon.connected {
+  color: #2ecc71;
+}
+
+.status-icon.disconnected {
+  color: #e74c3c;
+}
+
+.device-card h3 {
+  margin: 0.5rem 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  width: 100%;
+}
+
+.status {
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  font-weight: 500;
+  width: 100%;
+}
+
+.status.connected {
+  color: #27ae60;
+}
+
+.status.disconnected {
+  color: #e74c3c;
+}
+
+.last-tested {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  margin: 0.5rem 0 0;
+  width: 100%;
+}
+
+.expand-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #7f8c8d;
+  transition: transform 0.3s ease;
+}
+
+.device-card-container.expanded .expand-icon {
+  transform: rotate(45deg);
+}
+
+.device-detail {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-top: 1px solid #eee;
+  transition: all 0.3s ease;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.device-card-container.expanded .device-detail {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+.device-info {
+  margin-bottom: 1.5rem;
+}
+
+.device-info p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  line-height: 1.5;
+}
+
+.test-button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  transition: background 0.3s ease;
+}
+
+.test-button:hover {
+  background: #2980b9;
+}
+
+.test-button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.coin-simulator,
+.bill-simulator {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #eee;
+}
+
+.coin-simulator h3,
+.bill-simulator h3 {
+  font-size: 1rem;
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.coin-buttons,
+.bill-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.coin-button,
+.bill-button {
+  background: #f1f2f6;
+  border: 1px solid #dcdde1;
+  border-radius: 4px;
+  padding: 0.6rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-weight: 500;
+}
+
+.coin-button:hover,
+.bill-button:hover {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  font-style: italic;
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
+.fa-spin {
+  animation: fa-spin 2s infinite linear;
+  display: inline-block;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(359deg); }
+}
+
+/* Toast notifications */
+.Toastify__toast-container {
+  font-size: 0.9rem;
+}
+
+.Toastify__toast--success {
+  background: #27ae60;
+}
+
+.Toastify__toast--error {
+  background: #e74c3c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .device-management {
+    padding: 1rem;
+  }
+  
+  .device-container {
+    padding: 1rem;
+  }
+  
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .coin-buttons,
+  .bill-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .coin-button,
+  .bill-button {
+    padding: 0.5rem 0.3rem;
+    font-size: 0.8rem;
+  }
+  
+  .device-card {
+    padding: 1.2rem 1rem;
+  }
+  
+  .device-detail {
+    padding: 1rem;
+  }
+}
+
+.device-simulator {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.simulator-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.payment-display {
+  background: #2c3e50;
+  color: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.amount-display {
+  margin-bottom: 1rem;
+}
+
+.amount {
+  font-size: 3rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1;
+}
+
+.ticket-price {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.payment-progress {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #3498db;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.payment-options {
+  display: flex;
+}
+
+.device-info {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  border-left: 4px solid #6c757d;
+}
+
+.device-info p {
+  margin: 8px 0;
+  color: #495057;
+  display: flex;
+  justify-content: space-between;
+  max-width: 300px;
+}
+
+.device-info strong {
+  color: #343a40;
+  margin-right: 10px;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.coin-simulator,
+.bill-simulator {
+  margin-top: 20px;
+}
+
+.coin-simulator h3,
+.bill-simulator h3 {
+  color: #495057;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.coin-buttons,
+.bill-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.coin-button,
+.bill-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.coin-button {
+  background-color: #ffd700;
+  color: #8b6914;
+  min-width: 60px;
+}
+
+.bill-button {
+  background-color: #90ee90;
+  color: #2e8b57;
+  min-width: 80px;
+}
+
+.coin-button:hover {
+  background-color: #ffc800;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.bill-button:hover {
+  background-color: #7ccd7c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.coin-button:active,
+.bill-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.test-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 15px;
+  width: 100%;
+  max-width: 250px;
+}
+
+.test-button:hover {
+  background-color: #0069d9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.test-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.test-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .device-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .device-detail {
+    padding: 15px;
+  }
+  
+  .device-info p {
+    flex-direction: column;
+  }
+  
+  .device-info strong {
+    margin-bottom: 4px;
+  }
+}
+
+.device-simulator {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.simulator-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.payment-display {
+  background: #2c3e50;
+  color: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.amount-display {
+  margin-bottom: 1rem;
+}
+
+.amount {
+  font-size: 3rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1;
+}
+
+.ticket-price {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.payment-progress {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #3498db;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.payment-method {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.method-btn {
+  background: #ecf0f1;
+  border: 2px solid #bdc3c7;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.method-btn:hover {
+  background: #e0e0e0;
+}
+
+.method-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #2980b9;
+}
+
+.denomination-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.denomination-buttons button {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.denomination-buttons button:hover {
+  background: #2980b9;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.print-btn,
+.reset-btn {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.print-btn {
+  background: #2ecc71;
+  color: white;
+}
+
+.print-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+}
+
+.print-btn:not(:disabled):hover {
+  background: #27ae60;
+}
+
+.reset-btn {
+  background: #e74c3c;
+  color: white;
+}
+
+.reset-btn:hover {
+  background: #c0392b;
+}
+
+.print-notification {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #d4edda;
+  color: #155724;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.print-notification .success-icon {
+  color: #28a745;
+  font-size: 1.2rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Device Actions */
+.device-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e0e0e0;
+  animation: fadeIn 0.3s ease;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.test-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.test-btn:not(:disabled):hover {
+  background-color: #2980b9;
+}
+
+.print-btn {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.print-btn:not(:disabled):hover {
+  background-color: #27ae60;
+}
+
+/* Toast Notifications */
+.Toastify__toast-container {
+  width: auto;
+  max-width: 400px;
+}
+
+.Toastify__toast {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: inherit;
+}
+
+.Toastify__toast--success {
+  background-color: #2ecc71;
+}
+
+.Toastify__toast--error {
+  background-color: #e74c3c;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .device-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .denomination-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .amount {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .device-container {
+    padding: 1rem;
+  }
+  
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-method {
+    flex-direction: column;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+}
