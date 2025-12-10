@@ -17,10 +17,12 @@ client.on('message', (topic, message) => {
   if (topic === TOPIC_BILL) {
     const data = JSON.parse(message.toString());
     console.log('Bill inserted:', data);
+    broadcast({ type: "bill", ...data });
     // Relay to frontend or update DB as needed
   } else if (topic === TOPIC_COIN) {
     const data = JSON.parse(message.toString());
     console.log('Coin inserted:', data);
+    broadcast({ type: "coin", ...data });
     // Relay to frontend or update DB as needed
   }
 });
