@@ -9,6 +9,7 @@ import DatabaseViewer from './components/DatabaseViewer';
 import SyncManager from './components/SyncManager';
 import DeviceManagement from './components/DeviceManagement';
 import './App.css';
+import './kiosk.css';
 
 function App() {
   const [userData, setUserData] = useState({
@@ -22,7 +23,7 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
+      <div className="App kiosk-mode">
         <Routes>
           <Route path="/" element={<LandingPage userData={userData} setUserData={setUserData} />} />
           <Route path="/camera" element={<CameraCapture userData={userData} setUserData={setUserData} />} />

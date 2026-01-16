@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import Tesseract from 'tesseract.js';
-import { FaCamera, FaRedo, FaCheckCircle } from 'react-icons/fa';
+import { FaCamera, FaRedo, FaCheckCircle, FaKeyboard } from 'react-icons/fa';
+import VirtualKeyboard from './VirtualKeyboard';
 import './CameraCapture.css';
 
 function CameraCapture({ userData, setUserData }) {
@@ -18,6 +19,9 @@ function CameraCapture({ userData, setUserData }) {
   const [age, setAge] = useState('');
   const [nameError, setNameError] = useState('');
   const [ageError, setAgeError] = useState('');
+  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [keyboardTarget, setKeyboardTarget] = useState('');
+  const [activeInput, setActiveInput] = useState('');
 
   const processImage = useCallback((imageSrc) => {
     if (userData.hasID) {
@@ -99,6 +103,57 @@ function CameraCapture({ userData, setUserData }) {
       reader.readAsDataURL(file);
     }
   }, [processImage]);
+
+  const handleKeyboardInput = (key) => {
+    if (keyboardTarget === 'name') {
+      if (userData.hasID) {
+        setExtractedName(prev => prev + key);
+      } else {
+        setManualName(prev => prev + key);
+      }
+    } else if (keyboardTarget === 'age') {
+      setAge(prev => prev + key);
+    }
+  };
+
+  const handleKeyboardBackspace = () => {
+    if (keyboardTarget === 'name') {
+      if (userData.hasID) {
+        setExtractedName(prev => prev.slice(0, -1));
+      } else {
+        setManualName(prev => prev.slice(0, -1));
+      }
+    } else if (keyboardTarget === 'age') {
+      setAge(prev => prev.slice(0, -1));
+    }
+  };
+
+  const handleKeyboardClear = () => {
+    if (keyboardTarget === 'name') {
+      if (userData.hasID) {
+        setExtractedName('');
+      } else {
+        setManualName('');
+      }
+    } else if (keyboardTarget === 'age') {
+      setAge('');
+    }
+  };
+
+  const handleKeyboardEnter = () => {
+    setShowKeyboard(false);
+    if (keyboardTarget === 'name') {
+      confirmName();
+    } else if (keyboardTarget === 'age') {
+      proceed();
+    }
+  };
+
+  const handleInputFocus = (target) => {
+    setKeyboardTarget(target);
+    setActiveInput(target);
+    setShowKeyboard(true);
+  };
 
   const validateName = (name) => {
     if (!name || name.trim().length === 0) {
@@ -256,8 +311,10 @@ function CameraCapture({ userData, setUserData }) {
                       setExtractedName(e.target.value);
                       setNameError('');
                     }}
-                    className={`name-input ${nameError ? 'error' : ''}`}
+                    onFocus={() => handleInputFocus('name')}
+                    className={`name-input ${nameError ? 'error' : ''} ${activeInput === 'name' ? 'active' : ''}`}
                     placeholder="Name from ID"
+                    readOnly
                   />
                 </div>
               ) : (
@@ -270,8 +327,10 @@ function CameraCapture({ userData, setUserData }) {
                       setManualName(e.target.value);
                       setNameError('');
                     }}
-                    className={`name-input ${nameError ? 'error' : ''}`}
+                    onFocus={() => handleInputFocus('name')}
+                    className={`name-input ${nameError ? 'error' : ''} ${activeInput === 'name' ? 'active' : ''}`}
                     placeholder="Enter your full name"
+                    readOnly
                   />
                 </div>
               )}
@@ -298,10 +357,12 @@ function CameraCapture({ userData, setUserData }) {
                   setAge(e.target.value);
                   setAgeError('');
                 }}
-                className={`age-input ${ageError ? 'error' : ''}`}
+                onFocus={() => handleInputFocus('age')}
+                className={`age-input ${ageError ? 'error' : ''} ${activeInput === 'age' ? 'active' : ''}`}
                 placeholder="Enter your age"
                 min="1"
                 max="120"
+                readOnly
               />
               
               {ageError && <div className="error-message">{ageError}</div>}
@@ -320,6 +381,16 @@ function CameraCapture({ userData, setUserData }) {
             </div>
           )}
         </div>
+        
+        {showKeyboard && (
+          <VirtualKeyboard
+            onInput={handleKeyboardInput}
+            onBackspace={handleKeyboardBackspace}
+            onClear={handleKeyboardClear}
+            onEnter={handleKeyboardEnter}
+            inputType={keyboardTarget === 'age' ? 'number' : 'text'}
+          />
+        )}
       </div>
     </div>
   );

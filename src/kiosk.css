@@ -1,0 +1,89 @@
+/* Global styles for kiosk interface */
+
+/* Prevent zoom on all devices */
+body {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Allow clicks on interactive elements */
+button, a, input, select, textarea, .choice-card, .facility-card, .method-card, .bill-button, .coin-button, .key, .new-transaction-button, .print-button, .download-button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Prevent pinch zoom on non-interactive elements */
+* {
+  touch-action: manipulation;
+}
+
+/* Prevent text selection but allow interaction */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Prevent context menu but allow clicks */
+.no-context-menu {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Hide scrollbars but maintain functionality */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Kiosk mode specific styles */
+.kiosk-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Prevent zoom on mobile devices */
+@media screen and (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Prevent zoom on desktop */
+@media screen and (min-width: 769px) {
+  body {
+    zoom: reset !important;
+    -moz-transform: scale(1) !important;
+    -webkit-transform: scale(1) !important;
+    -o-transform: scale(1) !important;
+    -ms-transform: scale(1) !important;
+    transform: scale(1) !important;
+  }
+}
+
+/* Prevent right-click context menu */
+.no-right-click {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}

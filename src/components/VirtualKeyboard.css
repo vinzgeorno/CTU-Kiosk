@@ -1,0 +1,140 @@
+.virtual-keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  padding: 15px;
+  border-top: 2px solid #34495e;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.key {
+  background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 40px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.key:hover {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.key:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.key-wide {
+  min-width: 45px;
+}
+
+.key-space {
+  min-width: 200px;
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.key-space:hover {
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+}
+
+.key-special {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  min-width: 80px;
+}
+
+.key-special:hover {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+.key-special.active {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+}
+
+.key-enter {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  color: white;
+  min-width: 100px;
+}
+
+.key-enter:hover {
+  background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .virtual-keyboard {
+    padding: 10px;
+  }
+  
+  .key {
+    padding: 10px 12px;
+    font-size: 14px;
+    min-width: 35px;
+    min-height: 45px;
+  }
+  
+  .key-space {
+    min-width: 150px;
+  }
+  
+  .key-special {
+    min-width: 70px;
+  }
+  
+  .key-enter {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .keyboard-row {
+    gap: 5px;
+  }
+  
+  .key {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-width: 30px;
+    min-height: 40px;
+  }
+  
+  .key-space {
+    min-width: 120px;
+  }
+  
+  .key-special {
+    min-width: 60px;
+  }
+  
+  .key-enter {
+    min-width: 70px;
+  }
+}

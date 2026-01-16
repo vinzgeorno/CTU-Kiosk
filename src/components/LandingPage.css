@@ -1,11 +1,16 @@
 .landing-page {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%), 
               url('../images/campus.jpg') center/cover no-repeat;
-  padding: 20px;
+  margin: 0;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .landing-container {
@@ -39,19 +44,23 @@
 
 .choice-cards {
   display: flex;
-  gap: 40px;
+  gap: 30px;
   justify-content: center;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .choice-card {
   background: white;
-  border-radius: 20px;
-  padding: 60px 40px;
-  width: 350px;
+  border-radius: 15px;
+  padding: 30px 25px;
+  width: 280px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .choice-card:hover {
@@ -60,18 +69,19 @@
 }
 
 .choice-icon {
-  font-size: 80px;
+  font-size: 60px;
   color: #667eea;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .choice-card h2 {
-  font-size: 28px;
+  font-size: 24px;
   color: #333;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .choice-card p {
-  font-size: 18px;
+  font-size: 16px;
   color: #666;
+  line-height: 1.4;
 }
