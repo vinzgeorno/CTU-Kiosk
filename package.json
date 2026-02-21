@@ -11,7 +11,7 @@
     "escpos-usb": "^3.0.0-alpha.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
-    "mqtt": "^5.14.1",
+    "mqtt": "^5.15.0",
     "path-browserify": "^1.0.1",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
@@ -21,10 +21,11 @@
     "react-scripts": "^5.0.1",
     "react-toastify": "^11.0.5",
     "react-webcam": "^7.2.0",
+    "rpi-gpio": "^2.1.7",
     "sql.js": "^1.13.0",
     "tesseract.js": "^4.1.4",
     "web-vitals": "^3.5.2",
-    "ws": "^8.18.3"
+    "ws": "^8.19.0"
   },
   "scripts": {
     "start": "craco start",

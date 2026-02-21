@@ -1,32 +1,183 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMoneyBillWave, FaCoins } from 'react-icons/fa';
+import paymentHardware from '../utils/paymentHardware';
 import './PaymentPage.css';
 
 function PaymentPage({ userData, setUserData }) {
   const navigate = useNavigate();
   const [insertedAmount, setInsertedAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentInterface, setShowPaymentInterface] = useState(false);
+  const [hardwareStatus, setHardwareStatus] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [ws, setWs] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  
+  // Use refs for deduplication to avoid async state race conditions
+  const lastProcessedCoinRef = useRef(null);
+  const lastProcessedBillRef = useRef(null);
+  const isConnectingRef = useRef(false);
 
-  const handlePaymentMethod = (method) => {
-    if (paymentMethod === method) {
-      setPaymentMethod('');
-      setShowPaymentInterface(false);
-    } else {
-      setPaymentMethod(method);
-      setShowPaymentInterface(true);
+  // Initialize payment hardware on component mount
+  useEffect(() => {
+    console.log('🎯 PaymentPage Mounted');
+    
+    // Initialize WebSocket connection for real hardware first
+    initializeWebSocket();
+
+    // Fallback: Initialize simulator ONLY if WebSocket fails
+    const simulatorTimeout = setTimeout(() => {
+      if (connectionStatus === 'disconnected') {
+        console.log('⚠️ Real hardware unavailable - Starting simulator...');
+        initializeSimulator();
+      }
+    }, 2000); // Wait 2 seconds for real hardware connection
+
+    return () => {
+      clearTimeout(simulatorTimeout);
+      paymentHardware.stopMonitoring();
+      if (ws) {
+        ws.close();
+      }
+      console.log('🎯 PaymentPage Unmounted');
+    };
+  }, []);
+
+  /**
+   * Initialize simulator fallback (only if real hardware unavailable)
+   */
+  const initializeSimulator = () => {
+    paymentHardware.initialize({
+      onCoinDetected: (data) => {
+        console.log('💰 Simulator Coin Detected:', data);
+        setInsertedAmount(prev => prev + data.value);
+        addLog(`[COIN] ✓ ${data.pulses} pulses → ₱${data.value}`);
+      },
+      onBillDetected: (data) => {
+        console.log('💵 Simulator Bill Detected:', data);
+        setInsertedAmount(prev => prev + data.amount);
+        addLog(`[BILL] ✓ ${data.pulses} pulses → ₱${data.amount}`);
+      },
+      onPaymentUpdate: (data) => {
+        setHardwareStatus(data);
+      }
+    });
+
+    paymentHardware.startMonitoring();
+  };
+
+  /**
+   * Initialize WebSocket connection to backend for real-time pulse updates
+   */
+  const initializeWebSocket = () => {
+    // Prevent multiple concurrent connection attempts
+    if (isConnectingRef.current) {
+      console.log('⚠️ [WebSocket] Connection already in progress, skipping...');
+      return;
+    }
+    isConnectingRef.current = true;
+    
+    try {
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.hostname}:8081`;
+      
+      console.log(`🔌 [WebSocket] Connecting to ${wsUrl}...`);
+      const newWs = new WebSocket(wsUrl);
+
+      newWs.onopen = () => {
+        console.log('✅ [WebSocket] Connected to payment backend');
+        isConnectingRef.current = false;
+        setConnectionStatus('connected');
+        addLog('🌐 Live hardware connected');
+        
+        // Request initial status
+        newWs.send(JSON.stringify({ type: 'status' }));
+      };
+
+      newWs.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📨 [WebSocket] Received:', data);
+
+          if (data.type === 'init') {
+            // Do nothing with init, just confirm connection
+          } else if (data.type === 'coin') {
+            handleRealCoinPulse(data);
+          } else if (data.type === 'bill') {
+            handleRealBillPulse(data);
+          } else if (data.type === 'status') {
+            console.log('📊 Payment status:', data.state);
+          }
+        } catch (error) {
+          console.error('❌ [WebSocket] Parse error:', error);
+        }
+      };
+
+      newWs.onerror = (error) => {
+        console.error('❌ [WebSocket] Error:', error);
+        isConnectingRef.current = false;
+        setConnectionStatus('error');
+        addLog('⚠️ Real-time connection error');
+      };
+
+      newWs.onclose = () => {
+        console.log('🔌 [WebSocket] Disconnected from backend');
+        setConnectionStatus('disconnected');
+        addLog('🔌 Connection closed - simulator mode');
+      };
+
+      setWs(newWs);
+    } catch (error) {
+      console.error('❌ [WebSocket] Connection failed:', error);
+      isConnectingRef.current = false;
+      setConnectionStatus('error');
+      addLog('⚠️ Could not connect to backend');
     }
   };
 
-  const insertMoney = (amount) => {
-    setInsertedAmount(prev => prev + amount);
+  /**
+   * Handle real coin pulse from actual hardware
+   */
+  const handleRealCoinPulse = (data) => {
+    // Deduplication using ref (synchronous, prevents race conditions)
+    const pulseKey = `${data.pulses}-${data.value}-${data.timestamp}`;
+    if (lastProcessedCoinRef.current === pulseKey) {
+      console.log('⚠️ [DUPLICATE] Ignoring duplicate coin pulse');
+      return;
+    }
+    
+    lastProcessedCoinRef.current = pulseKey;
+    console.log('⚡ [REAL HARDWARE] Coin pulse detected:', data);
+    setInsertedAmount(prev => prev + (data.value || 0));
+    addLog(`⚡ [REAL COIN] +₱${data.value}`);
+  };
+
+  /**
+   * Handle real bill pulse from actual hardware
+   */
+  const handleRealBillPulse = (data) => {
+    // Deduplication using ref (synchronous, prevents race conditions)
+    const pulseKey = `${data.pulses}-${data.amount}-${data.timestamp}`;
+    if (lastProcessedBillRef.current === pulseKey) {
+      console.log('⚠️ [DUPLICATE] Ignoring duplicate bill pulse');
+      return;
+    }
+    
+    lastProcessedBillRef.current = pulseKey;
+    console.log('⚡ [REAL HARDWARE] Bill pulse detected:', data);
+    setInsertedAmount(prev => prev + (data.amount || 0));
+    addLog(`⚡ [REAL BILL] +₱${data.amount}`);
+  };
+
+  const addLog = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`].slice(-20)); // Keep last 20 logs
   };
 
   const processPayment = () => {
     if (insertedAmount >= userData.ticketPrice) {
       setIsProcessing(true);
+      addLog(`✅ Payment approved | Processing transaction...`);
       
       // Calculate change
       const changeAmount = insertedAmount - userData.ticketPrice;
@@ -34,19 +185,36 @@ function PaymentPage({ userData, setUserData }) {
       // Create transaction ID
       const transactionId = 'TKT-' + Date.now();
       
+      console.log('🎫 Processing Payment:', {
+        transactionId,
+        amountInserted: insertedAmount,
+        changeGiven: changeAmount
+      });
+
+      // Dispense change if needed
+      if (changeAmount > 0) {
+        const dispenseResult = paymentHardware.dispenseChange(changeAmount);
+        addLog(`🪙 Change dispensed: ₱${changeAmount} - ${dispenseResult.success ? 'Success' : 'Failed'}`);
+      }
+      
       // Update user data with payment information
       setUserData({
         ...userData,
         transactionId: transactionId,
-        paymentMethod: paymentMethod,
+        paymentMethod: 'mixed', // Both coin and bill accepted
         amountInserted: insertedAmount,
         changeGiven: changeAmount
       });
+
+      // Stop hardware monitoring before navigation
+      paymentHardware.resetCredit();
 
       // Simulate payment processing
       setTimeout(() => {
         navigate('/ticket-complete');
       }, 2000);
+    } else {
+      addLog(`⚠️ Insufficient payment: ₱${insertedAmount} < ₱${userData.ticketPrice}`);
     }
   };
 
@@ -59,69 +227,15 @@ function PaymentPage({ userData, setUserData }) {
         
         <div className="payment-content">
           <div className="payment-left-section">
-            <div className="payment-summary">
-              <h2>Order Summary</h2>
-              <div className="summary-card">
-                <div className="summary-row">
-                  <span>Visitor:</span>
-                  <strong>{userData.name}</strong>
-                </div>
-                <div className="summary-row">
-                  <span>Building:</span>
-                  <strong>{userData.selectedBuilding?.name}</strong>
-                </div>
-                <div className="summary-row total">
-                  <span>Total Amount:</span>
-                  <strong className="amount">₱{userData.ticketPrice}.00</strong>
-                </div>
+            <div className="payment-interface">
+              <h2>Insert Payment</h2>
+              
+              <div className="payment-instructions">
+                <p>💰 Insert coins or bills</p>
+                <p>Both payment methods are active</p>
               </div>
-            </div>
 
-            <div className="payment-methods">
-              <h2>Select Payment Method</h2>
-              <div className="method-cards">
-                <div 
-                  className={`method-card ${paymentMethod === 'bills' ? 'selected' : ''}`}
-                  onClick={() => handlePaymentMethod('bills')}
-                >
-                  <FaMoneyBillWave className="method-icon" />
-                  <span>Bills</span>
-                </div>
-                <div 
-                  className={`method-card ${paymentMethod === 'coins' ? 'selected' : ''}`}
-                  onClick={() => handlePaymentMethod('coins')}
-                >
-                  <FaCoins className="method-icon" />
-                  <span>Coins</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {showPaymentInterface && paymentMethod && (
-            <div className="payment-right-section">
-              <div className="payment-interface">
-                <h2>Insert Payment</h2>
-                
-                {paymentMethod === 'bills' && (
-                  <div className="bill-buttons">
-                    <button onClick={() => insertMoney(20)} className="bill-button">₱20</button>
-                    <button onClick={() => insertMoney(50)} className="bill-button">₱50</button>
-                    <button onClick={() => insertMoney(100)} className="bill-button">₱100</button>
-                    <button onClick={() => insertMoney(500)} className="bill-button">₱500</button>
-                  </div>
-                )}
-
-                {paymentMethod === 'coins' && (
-                  <div className="coin-buttons">
-                    <button onClick={() => insertMoney(1)} className="coin-button">₱1</button>
-                    <button onClick={() => insertMoney(5)} className="coin-button">₱5</button>
-                    <button onClick={() => insertMoney(10)} className="coin-button">₱10</button>
-                    <button onClick={() => insertMoney(20)} className="coin-button">₱20</button>
-                  </div>
-                )}
-
-                <div className="payment-status">
+              <div className="payment-status">
                   <div className="status-row">
                     <span>Amount Due:</span>
                     <strong>₱{userData.ticketPrice}.00</strong>
@@ -156,7 +270,26 @@ function PaymentPage({ userData, setUserData }) {
                 </button>
               </div>
             </div>
-          )}
+
+          <div className="payment-right-section">
+            <div className="payment-summary">
+              <h2>Order Summary</h2>
+              <div className="summary-card">
+                <div className="summary-row">
+                  <span>Visitor:</span>
+                  <strong>{userData.name}</strong>
+                </div>
+                <div className="summary-row">
+                  <span>Building:</span>
+                  <strong>{userData.selectedBuilding?.name}</strong>
+                </div>
+                <div className="summary-row total">
+                  <span>Total Amount:</span>
+                  <strong className="amount">₱{userData.ticketPrice}.00</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
