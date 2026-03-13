@@ -9,8 +9,8 @@ import RPi.GPIO as GPIO
 import time
 
 # ── Pin assignments ───────────────────────────────────────────────
-COIN_PIN = 2
-BILL_PIN = 22
+COIN_PIN = 27
+BILL_PIN = 26
 
 # ── Shared state ──────────────────────────────────────────────────
 credit = 0  # total credit in pesos
