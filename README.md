@@ -4,13 +4,10 @@ A smart ticketing kiosk system for managing and tracking facility usage within t
 ## Features
 
 - **Offline-First Architecture**: Works without internet connection
-- **ID Card Scanning**: OCR-based ID card text extraction
-- **Facial Recognition**: Capture visitor photos
 - **Multiple Facilities**: Support for 6+ campus facilities
 - **Dynamic Pricing**: Automatic child discounts (50% off for under 12)
 - **Payment Processing**: Bills and coins payment simulation
 - **Ticket Generation**: QR code tickets with PDF export
-- **Thermal Printing**: Direct printing to 58mm thermal printers
 - **Local Database**: IndexedDB for offline data storage
 - **Cloud Sync**: Automatic backup to Supabase cloud database
 - **Admin Dashboard**: View tickets, statistics, and manage sync
@@ -56,7 +53,5 @@ npm start
 - React Router
 - IndexedDB (offline storage)
 - Supabase (cloud database)
-- Tesseract.js (OCR)
 - QRCode generation
 - jsPDF & html2canvas
-- ESC/POS thermal printing

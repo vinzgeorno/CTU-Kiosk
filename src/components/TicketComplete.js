@@ -4,7 +4,6 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 import { FaCheckCircle, FaDownload, FaHome, FaPrint } from 'react-icons/fa';
-import ThermalPrinter from '../utils/thermalPrinter';
 import database from '../utils/indexedDatabase';
 import './TicketComplete.css';
 
@@ -12,8 +11,6 @@ function TicketComplete({ userData, setUserData }) {
   const navigate = useNavigate();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [qrCodeDataURL, setQrCodeDataURL] = useState('');
-  const [thermalPrinter] = useState(new ThermalPrinter());
-  const [isPrinting, setIsPrinting] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(15);
 
   useEffect(() => {
@@ -22,11 +19,6 @@ function TicketComplete({ userData, setUserData }) {
     
     // Generate QR code when component mounts
     generateQRCode();
-    
-    // Auto-print to thermal printer after 2 seconds
-    const timer = setTimeout(() => {
-      printThermalTicket();
-    }, 2000);
 
     // Auto-return to main page after 15 seconds
     const countdownTimer = setInterval(() => {
@@ -41,7 +33,6 @@ function TicketComplete({ userData, setUserData }) {
     }, 1000);
 
     return () => {
-      clearTimeout(timer);
       clearInterval(countdownTimer);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,7 +68,6 @@ function TicketComplete({ userData, setUserData }) {
         referenceNumber: userData.transactionId,
         name: userData.name,
         age: userData.age,
-        capturedImage: userData.capturedImage,
         facility: userData.selectedBuilding?.name,
         paymentAmount: userData.ticketPrice,
         originalPrice: userData.originalPrice || userData.ticketPrice,
@@ -183,56 +173,10 @@ function TicketComplete({ userData, setUserData }) {
     setIsGeneratingPDF(false);
   };
 
-  const printThermalTicket = async () => {
-    setIsPrinting(true);
-    
-    try {
-      const ticketData = {
-        name: userData.name,
-        facility: userData.selectedBuilding?.name,
-        amount: userData.ticketPrice,
-        transactionId: userData.transactionId,
-        date: new Date().toISOString(),
-        qrCodeDataURL: qrCodeDataURL,
-        qrData: {
-          transactionId: userData.transactionId,
-          name: userData.name,
-          facility: userData.selectedBuilding?.name,
-          amount: userData.ticketPrice,
-          date: new Date().toISOString(),
-          validUntil: new Date().setHours(23, 59, 59, 999)
-        }
-      };
-
-      // Try Web Serial API first (for direct thermal printer connection)
-      if ('serial' in navigator) {
-        const commands = thermalPrinter.generateTicketCommands(ticketData);
-        const result = await thermalPrinter.printViaWebSerial(commands);
-        
-        if (result.success) {
-          console.log('Thermal printing successful');
-        } else {
-          console.log('Web Serial failed, falling back to system print');
-          await thermalPrinter.printViaSystemDialog(ticketData);
-        }
-      } else {
-        // Fallback to system print dialog
-        console.log('Web Serial not supported, using system print');
-        await thermalPrinter.printViaSystemDialog(ticketData);
-      }
-      
-    } catch (error) {
-      console.error('Thermal printing error:', error);
-    }
-    
-    setIsPrinting(false);
-  };
-
   const startNewTransaction = () => {
     setUserData({
-      hasID: null,
       name: '',
-      capturedImage: null,
+      age: null,
       selectedBuilding: null,
       ticketPrice: 0,
       transactionId: null
@@ -255,12 +199,6 @@ function TicketComplete({ userData, setUserData }) {
               </div>
 
               <div className="ticket-main">
-                {userData.capturedImage && (
-                  <div className="visitor-photo">
-                    <img src={userData.capturedImage} alt="Visitor" />
-                  </div>
-                )}
-
                 <div className="visitor-details">
                   <h2>{userData.name}</h2>
                   <div className="detail-grid compact">
@@ -323,23 +261,6 @@ function TicketComplete({ userData, setUserData }) {
           </div>
 
           <div className="action-buttons">
-            <button 
-              onClick={printThermalTicket} 
-              className="print-button"
-              disabled={isPrinting}
-            >
-              {isPrinting ? (
-                <>
-                  <div className="spinner-small"></div>
-                  Printing to Thermal Printer...
-                </>
-              ) : (
-                <>
-                  <FaPrint /> Print Thermal Ticket
-                </>
-              )}
-            </button>
-
             <button 
               onClick={downloadTicketPDF} 
               className="download-button"

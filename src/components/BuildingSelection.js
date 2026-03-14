@@ -60,69 +60,29 @@ function BuildingSelection({ userData, setUserData }) {
   return (
     <div className="building-selection fade-in">
       <div className="selection-container">
-        <div className="ticket-preview">
-          <div className="ticket">
-            <div className="ticket-header">
-              <h2>Access Ticket</h2>
-              <div className="ticket-date">{formatDate()}</div>
+        <div className="info-sidebar">
+          <div className="info-box">
+            <div className="info-section">
+              <span className="info-label">Age:</span>
+              <span className="info-value">{userData.age || '-'}</span>
             </div>
-            
-            <div className="ticket-body">
-              {userData.capturedImage && (
-                <div className="ticket-photo">
-                  <img src={userData.capturedImage} alt="Visitor" />
-                </div>
-              )}
-              
-              <div className="ticket-info">
-                <div className="info-row">
-                  <span className="label">Name:</span>
-                  <span className="value">{userData.name || 'Guest'}</span>
-                </div>
-                
-                <div className="info-row">
-                  <span className="label">Time:</span>
-                  <span className="value">{formatTime()}</span>
-                </div>
-                
-                <div className="info-row">
-                  <span className="label">Facility:</span>
-                  <span className="value">
-                    {selectedBuilding ? selectedBuilding.name : 'Not Selected'}
-                  </span>
-                </div>
-                
-                {userData.age && (
-                  <div className="info-row">
-                    <span className="label">Age:</span>
-                    <span className="value">{userData.age}</span>
-                  </div>
-                )}
-                
-                <div className="info-row">
-                  <span className="label">Access Fee:</span>
-                  <span className="value price">
-                    {selectedBuilding ? (
-                      <>
-                        {userData.age && userData.age < 12 ? (
-                          <>
-                            <span className="original-price">₱{selectedBuilding.price}.00</span>
-                            <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
-                            <span className="discount-label">(50% Child Discount)</span>
-                          </>
-                        ) : (
-                          `₱${selectedBuilding.price}.00`
-                        )}
-                      </>
-                    ) : '₱0.00'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="ticket-barcode">
-                <div className="barcode"></div>
-                <div className="barcode-number">TKT-{Date.now().toString().slice(-8)}</div>
-              </div>
+            <div className="info-section">
+              <span className="info-label">Ticket #:</span>
+              <span className="info-value">TKT-{Date.now().toString().slice(-8)}</span>
+            </div>
+            <div className="info-section">
+              <span className="info-label">Price:</span>
+              <span className="info-value price">
+                {selectedBuilding ? (
+                  <>
+                    {userData.age && userData.age < 12 ? (
+                      <>{(selectedBuilding.price * 0.5).toFixed(2)} ₱</>
+                    ) : (
+                      <>{selectedBuilding.price.toFixed(2)} ₱</>
+                    )}
+                  </>
+                ) : '0.00 ₱'}
+              </span>
             </div>
           </div>
         </div>

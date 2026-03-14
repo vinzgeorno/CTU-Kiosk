@@ -2,8 +2,8 @@
 """
 Combined Coin & Bill Acceptor Script for Raspberry Pi (MQTT Edition)
 Mirrors test.py logic with MQTT publishing for real-time frontend sync
-- Coin Acceptor: GPIO 2 (physical pin 3)
-- Bill Acceptor: GPIO 22 (physical pin 15)
+- Coin Acceptor: GPIO 27
+- Bill Acceptor: GPIO 26
 """
 
 import RPi.GPIO as GPIO
@@ -12,10 +12,13 @@ import signal
 import sys
 import json
 import paho.mqtt.client as mqtt
+import os
+import subprocess
+from datetime import datetime
 
 # ── Pin assignments ───────────────────────────────────────────────
-COIN_PIN = 2
-BILL_PIN = 22
+COIN_PIN = 27
+BILL_PIN = 26
 
 # ── MQTT config ───────────────────────────────────────────────────
 BROKER = 'localhost'  # or IP of your MQTT broker
@@ -47,7 +50,7 @@ bill_pulse_count = 0
 bill_last_pulse_time = 0.0
 BILL_VALUE_PER_PULSE = 10  # 1 pulse = ₱10
 BILL_DONE_TIMEOUT = 0.25   # 250ms gap = end of bill pulse burst
-BILL_DEBOUNCE_MS = 50
+BILL_DEBOUNCE_MS = 20
 
 # ── DEBUG: Track all pulses received ───────────────────────────────
 pulse_log = []
@@ -128,7 +131,7 @@ def bill_pulse_callback(channel):
 # ── Process & Publish Events ──────────────────────────────────────
 
 def publish_coin_event(mqtt_client, pulses):
-    """Publish coin event to MQTT"""
+    """Publish coin event to MQTT and print receipt"""
     global credit
     value = PULSE_TO_VALUE.get(pulses)
     
@@ -263,46 +266,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# --------------- CLEANUP HANDLER ---------------
-
-def cleanup(signum, frame):
-    print("Cleaning up and exiting...")
-    GPIO.cleanup()
-    mqtt_client.disconnect()
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, cleanup)
-signal.signal(signal.SIGTERM, cleanup)
-
-print('Payment GPIO+MQTT integration running. Press Ctrl+C to exit.')
-
-# --------------- MAIN LOOP ---------------
-
-mqtt_client.loop_start()
-
-try:
-    while True:
-        now = time.time()
-        # --- COIN BURST GROUPING LOGIC ---
-        global pulse_count, last_pulse_time
-        if pulse_count > 0 and (now - last_pulse_time) > COIN_GAP_TIMEOUT:
-            pulses = pulse_count
-            pulse_count = 0
-            value = PULSE_TO_VALUE.get(pulses, None)
-            if value is None:
-                print(f"Unknown coin: {pulses} pulses")
-            else:
-                payload = json.dumps({
-                    "amount": value,
-                    "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-                })
-                mqtt_client.publish(TOPIC_COIN, payload)
-                print(f"Coin detected: {pulses} pulses -> +{value} credit. Published to MQTT.")
-        # Print pin states every 0.5s for debug
-        bill_state = GPIO.input(BILL_ACCEPTOR_PIN)
-        coin_state = GPIO.input(COIN_ACCEPTOR_PIN)
-        print(f'[DEBUG] Bill GPIO {BILL_ACCEPTOR_PIN}: {bill_state} | Coin GPIO {COIN_ACCEPTOR_PIN}: {coin_state}')
-        time.sleep(0.5)
-except KeyboardInterrupt:
-    cleanup(None, None)

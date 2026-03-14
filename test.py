@@ -34,7 +34,7 @@ bill_pulse_count = 0
 bill_last_pulse_time = 0.0
 BILL_VALUE_PER_PULSE = 10  # 1 pulse = ₱10
 BILL_DONE_TIMEOUT = 0.25   # 250ms gap = end of bill pulse burst
-BILL_DEBOUNCE_MS = 50
+BILL_DEBOUNCE_MS = 20
 
 
 # ── Callbacks ─────────────────────────────────────────────────────
