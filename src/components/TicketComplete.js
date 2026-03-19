@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
-import { FaCheckCircle, FaDownload, FaHome, FaPrint } from 'react-icons/fa';
+import { FaCheckCircle, FaHome, FaPrint } from 'react-icons/fa';
 import database from '../utils/indexedDatabase';
 import './TicketComplete.css';
 
 function TicketComplete({ userData, setUserData }) {
   const navigate = useNavigate();
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [qrCodeDataURL, setQrCodeDataURL] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(15);
 
@@ -142,37 +140,6 @@ function TicketComplete({ userData, setUserData }) {
     });
   };
 
-  const downloadTicketPDF = async () => {
-    setIsGeneratingPDF(true);
-    
-    const ticketElement = document.getElementById('ticket-to-print');
-    
-    try {
-      const canvas = await html2canvas(ticketElement, {
-        scale: 2,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const imgWidth = 190;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-      pdf.save(`ticket-${userData.transactionId}.pdf`);
-      
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    }
-    
-    setIsGeneratingPDF(false);
-  };
-
   const startNewTransaction = () => {
     setUserData({
       name: '',
@@ -182,6 +149,55 @@ function TicketComplete({ userData, setUserData }) {
       transactionId: null
     });
     navigate('/');
+  };
+
+  const printTicket = async () => {
+    setIsPrinting(true);
+    
+    try {
+      console.log('🖨️ Sending print request with data:', {
+        age: userData.age,
+        facility: userData.selectedBuilding?.name,
+        ticketNumber: userData.transactionId,
+        discountPrice: userData.ticketPrice,
+        originalPrice: userData.originalPrice || userData.ticketPrice,
+        hasDiscount: userData.hasDiscount || false
+      });
+
+      // Send ticket data to backend instead of image
+      const response = await fetch('http://localhost:8081/print-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          age: userData.age,
+          facility: userData.selectedBuilding?.name,
+          ticketNumber: userData.transactionId,
+          originalPrice: userData.originalPrice || userData.ticketPrice,
+          discountPrice: userData.ticketPrice,
+          hasDiscount: userData.hasDiscount || false,
+          transactionId: userData.transactionId
+        })
+      });
+      
+      console.log('Response status:', response.status);
+      const result = await response.json();
+      console.log('Response data:', result);
+      
+      if (result.success) {
+        console.log('✅ Ticket printed successfully');
+        alert('Ticket printed successfully!');
+      } else {
+        console.error('❌ Print failed:', result.error);
+        alert(`Failed to print ticket: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error printing ticket:', error);
+      alert(`Error: Make sure backend is running on localhost:8081. ${error.message}`);
+    }
+    
+    setIsPrinting(false);
   };
 
   return (
@@ -262,18 +278,18 @@ function TicketComplete({ userData, setUserData }) {
 
           <div className="action-buttons">
             <button 
-              onClick={downloadTicketPDF} 
-              className="download-button"
-              disabled={isGeneratingPDF}
+              onClick={printTicket} 
+              className="print-button"
+              disabled={isPrinting}
             >
-              {isGeneratingPDF ? (
+              {isPrinting ? (
                 <>
                   <div className="spinner-small"></div>
-                  Generating PDF...
+                  Printing...
                 </>
               ) : (
                 <>
-                  <FaDownload /> Download PDF Backup
+                  <FaPrint /> Print Ticket
                 </>
               )}
             </button>

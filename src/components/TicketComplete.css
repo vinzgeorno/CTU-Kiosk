@@ -312,7 +312,7 @@
   max-width: 200px;
 }
 
-.download-button, .print-button, .new-transaction-button {
+.print-button, .new-transaction-button {
   flex: 1;
   padding: 8px 10px;
   font-size: 12px;
@@ -346,22 +346,6 @@
   cursor: not-allowed;
 }
 
-.download-button {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-}
-
-.download-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
-}
-
-.download-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
 .new-transaction-button {
   background: white;
   color: #667eea;
@@ -374,6 +358,15 @@
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {

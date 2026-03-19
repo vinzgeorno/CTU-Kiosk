@@ -14,6 +14,22 @@ const mqtt = require('mqtt');
 const WebSocket = require('ws');
 const express = require('express');
 const http = require('http');
+const net = require('net');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const QRCode = require('qrcode');
+
+// CORS middleware
+const corsMiddleware = (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+};
 
 // ============ MQTT Configuration ============
 const MQTT_BROKER_URL = process.env.MQTT_BROKER || 'mqtt://localhost:1883';
@@ -228,6 +244,10 @@ const wss = new WebSocket.Server({ server });
 
 const WS_PORT = process.env.WS_PORT || 8081;
 
+// Use CORS middleware
+app.use(corsMiddleware);
+app.use(express.json());
+
 wss.on('connection', (ws) => {
   console.log(`\n🌐 [WebSocket] Client connected. Total clients: ${wss.clients.size}`);
   
@@ -313,7 +333,7 @@ function broadcastToWebSocket(data) {
 }
 
 // ============ Express Routes ============
-app.use(express.json());
+// Middleware already configured above with CORS and JSON parsing
 
 app.get('/status', (req, res) => {
   res.json({
@@ -351,6 +371,138 @@ app.get('/pulse-debug-log', (req, res) => {
     totalEntries: pulseDebugLog.length,
     timestamp: new Date().toISOString()
   });
+});
+
+/**
+ * Print ticket endpoint
+ * Receives ticket data and generates a simple preset ticket for printing
+ */
+/**
+ * ============ ESC/POS Printer Configuration ============
+ * Dynamically detects connected USB thermal printers or uses fallback settings
+ */
+function getUsbPrinterConfig() {
+  // Default USB vendor/product IDs for common thermal printers
+  const commonPrinterIds = [
+    { vid: 0x04b8, pid: 0x0202 }, // Epson TM series
+    { vid: 0x0b01, pid: 0x006b }, // Zebra printers
+    { vid: 0x0556, pid: 0x0004 }, // Asix ECL-P50
+    { vid: 0x1504, pid: 0x0006 }, // Generic thermal printer
+  ];
+
+  // Try environment variable first
+  const envVid = parseInt(process.env.PRINTER_USB_VID || '0', 16);
+  const envPid = parseInt(process.env.PRINTER_USB_PID || '0', 16);
+  
+  if (envVid && envPid) {
+    console.log(`🖨️ [PRINTER] Using environment USB config: VID=${envVid.toString(16)}, PID=${envPid.toString(16)}`);
+    return { vid: envVid, pid: envPid };
+  }
+
+  // Return default (first common printer)
+  return commonPrinterIds[0];
+}
+
+app.post('/print-ticket', async (req, res) => {
+  console.log('📨 [PRINTER] Received print request:', req.body);
+  
+  try {
+    const { age, facility, ticketNumber, originalPrice, discountPrice, hasDiscount, transactionId } = req.body;
+    
+    if (!transactionId || !facility) {
+      console.error('❌ [PRINTER] Missing required fields:', { transactionId, facility });
+      return res.status(400).json({ success: false, error: 'Missing required ticket data' });
+    }
+
+    // Call Python printer script
+    const ticketData = {
+      age,
+      facility,
+      ticketNumber,
+      originalPrice,
+      discountPrice,
+      hasDiscount,
+      transactionId
+    };
+
+    console.log('🖨️ [PRINTER] Calling Python print script...');
+    
+    const pythonInterpreter = path.join(__dirname, 'escpos-env', 'bin', 'python3');
+    const pythonProcess = spawn(pythonInterpreter, [
+      path.join(__dirname, 'print_ticket.py'),
+      JSON.stringify(ticketData)
+    ], {
+      cwd: __dirname,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' }
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+      if (data.toString().includes('error') || data.toString().includes('Error')) {
+        console.error('⚠️ [PRINTER] stderr:', data.toString());
+      }
+    });
+
+    pythonProcess.on('close', (code) => {
+      console.log(`🔚 [PRINTER] Python process exited with code: ${code}`);
+      
+      if (code === 0 && stdout) {
+        try {
+          const result = JSON.parse(stdout);
+          if (result.success) {
+            console.log(`✅ [PRINTER] Ticket printed successfully. Transaction: ${transactionId}`);
+            res.json({
+              success: true,
+              message: 'Ticket printed successfully',
+              transactionId,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            console.error('❌ [PRINTER] Print failed:', result.error);
+            res.status(500).json({
+              success: false,
+              error: result.error || 'Print failed'
+            });
+          }
+        } catch (parseError) {
+          console.error('❌ [PRINTER] Failed to parse Python output:', parseError);
+          res.status(500).json({
+            success: false,
+            error: 'Failed to parse printer response'
+          });
+        }
+      } else {
+        const errorMsg = stderr || stdout || `Process exited with code ${code}`;
+        console.error('❌ [PRINTER] Process error:', errorMsg);
+        res.status(500).json({
+          success: false,
+          error: errorMsg
+        });
+      }
+    });
+
+    pythonProcess.on('error', (error) => {
+      console.error('❌ [PRINTER] Failed to start Python process:', error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to start printer: ${error.message}`
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ [PRINTER] Endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // ============ Server Startup ============

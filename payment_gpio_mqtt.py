@@ -200,17 +200,6 @@ def process_payment_events(mqtt_client):
 def main():
     global coin_pulse_count, bill_pulse_count, credit
     
-    # Setup GPIO
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(COIN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(BILL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    
-    # Setup MQTT
-    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
-    mqtt_client.on_disconnect = on_disconnect
-    
     print("\n" + "="*60)
     print("🚀 CTU-Kiosk Payment Hardware (MQTT Bridge) Starting...")
     print("="*60)
@@ -219,20 +208,61 @@ def main():
     print(f"💰 Coin pulse map: {PULSE_TO_VALUE}")
     print(f"💵 Bill: ₱{BILL_VALUE_PER_PULSE} per pulse\n")
     
+    # Setup GPIO with comprehensive error handling
+    gpio_available = False
+    try:
+        # Clean up any previous GPIO setup
+        try:
+            GPIO.cleanup()
+        except:
+            pass
+        
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(COIN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(BILL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        
+        print("✅ GPIO pins initialized")
+        
+        # Add GPIO event detection
+        try:
+            GPIO.add_event_detect(COIN_PIN, GPIO.FALLING,
+                                callback=coin_pulse_callback,
+                                bouncetime=COIN_DEBOUNCE_MS)
+            GPIO.add_event_detect(BILL_PIN, GPIO.FALLING,
+                                callback=bill_pulse_callback,
+                                bouncetime=BILL_DEBOUNCE_MS)
+            gpio_available = True
+            print("✅ GPIO edge detection enabled - Real Hardware Mode\n")
+        except Exception as e:
+            print(f"⚠️  Edge detection failed: {e}")
+            print("   Possible causes:")
+            print("   - GPIO pins already in use by another process")
+            print("   - Permission denied (run with sudo or add user to gpio group)")
+            print("   - GPIO not available on this system")
+            print("   Falling back to MQTT Simulator Mode\n")
+            gpio_available = False
+            
+    except Exception as e:
+        print(f"⚠️  GPIO initialization failed: {e}")
+        print("   Running in MQTT Simulator Mode (no GPIO hardware)\n")
+        gpio_available = False
+    
+    # Setup MQTT
+    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
+    mqtt_client.on_disconnect = on_disconnect
+    
     try:
         mqtt_client.connect(BROKER, PORT, 60)
         mqtt_client.loop_start()
         
-        # Add GPIO event detection
-        GPIO.add_event_detect(COIN_PIN, GPIO.FALLING,
-                            callback=coin_pulse_callback,
-                            bouncetime=COIN_DEBOUNCE_MS)
-        GPIO.add_event_detect(BILL_PIN, GPIO.FALLING,
-                            callback=bill_pulse_callback,
-                            bouncetime=BILL_DEBOUNCE_MS)
-        
-        print("✅ Coin & Bill Acceptor Ready... (Press CTRL+C to exit)")
-        print(f"📋 All pulses logged. Type 'show_logs' to debug.\n")
+        if gpio_available:
+            print("✅ Coin & Bill Acceptor Ready... (Press CTRL+C to exit)")
+            print(f"📋 All pulses logged. Type 'show_logs' to debug.\n")
+        else:
+            print("✅ MQTT Service Running in Simulator Mode... (Press CTRL+C to exit)")
+            print(f"📋 Simulated pulses logged.\n")
         
         last_debug_time = time.time()
         
@@ -244,11 +274,19 @@ def main():
             
             # Debug every 2s
             if now - last_debug_time > 2.0:
-                coin_state = GPIO.input(COIN_PIN)
-                bill_state = GPIO.input(BILL_PIN)
-                print(f"[DEBUG] COIN GPIO{COIN_PIN}={coin_state} (pulses={coin_pulse_count}) | "
-                      f"BILL GPIO{BILL_PIN}={bill_state} (pulses={bill_pulse_count}) | "
-                      f"Credit=₱{credit}", flush=True)
+                if gpio_available:
+                    try:
+                        coin_state = GPIO.input(COIN_PIN)
+                        bill_state = GPIO.input(BILL_PIN)
+                        print(f"[GPIO] COIN GPIO{COIN_PIN}={coin_state} (pulses={coin_pulse_count}) | "
+                              f"BILL GPIO{BILL_PIN}={bill_state} (pulses={bill_pulse_count}) | "
+                              f"Credit=₱{credit}", flush=True)
+                    except:
+                        print(f"[GPIO] Error reading pins (pulses COIN={coin_pulse_count}, BILL={bill_pulse_count}, Credit=₱{credit})", flush=True)
+                else:
+                    print(f"[SIMULATOR] COIN (pulses={coin_pulse_count}) | "
+                          f"BILL (pulses={bill_pulse_count}) | "
+                          f"Credit=₱{credit}", flush=True)
                 last_debug_time = now
             
             time.sleep(0.01)
@@ -257,8 +295,15 @@ def main():
         print("\n\n🛑 Stopping...")
     except Exception as e:
         print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        GPIO.cleanup()
+        if gpio_available:
+            try:
+                GPIO.cleanup()
+                print("✅ GPIO cleaned up")
+            except:
+                pass
         mqtt_client.loop_stop()
         mqtt_client.disconnect()
         print("✅ Cleanup complete")
