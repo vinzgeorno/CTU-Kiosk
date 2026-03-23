@@ -161,6 +161,11 @@ function handleBillEvent(data) {
         gpioPin: HARDWARE_CONFIG.BILL_PIN
       };
 
+      // Debug: Print exactly what's being broadcast
+      console.log(`\n📊 [BACKEND_BILL] Received: ${pulses} pulses, amount: ₱${data.amount}`);
+      console.log(`📊 [BACKEND_BILL] Calculated: ${pulses} × ₱${HARDWARE_CONFIG.BILL_VALUE_PER_PULSE} = ₱${added}`);
+      console.log(`📊 [BACKEND_BILL] Broadcasting: ${JSON.stringify(billEvent)}\n`);
+      
       // Debug: Print processed bill pulse
       debugPrintPulses('BILL', billEvent);
       
@@ -202,6 +207,11 @@ function handleCoinEvent(data) {
           timestamp: new Date().toISOString(),
           gpioPin: HARDWARE_CONFIG.COIN_PIN
         };
+
+        // Debug: Print exactly what's being broadcast
+        console.log(`\n📊 [BACKEND_COIN] Received: ${pulses} pulses, value: ₱${data.value}`);
+        console.log(`📊 [BACKEND_COIN] Lookup: PULSE_TO_VALUE[${pulses}] = ₱${value}`);
+        console.log(`📊 [BACKEND_COIN] Broadcasting: ${JSON.stringify(coinEvent)}\n`);
 
         // Debug: Print processed coin pulse
         debugPrintPulses('COIN', coinEvent);

@@ -164,64 +164,27 @@ class Database {
 
       const {
         referenceNumber,
-        name,
         age,
-        capturedImage,
         facility,
-        paymentAmount,
-        originalPrice,
-        hasDiscount,
-        dateCreated,
-        dateExpiry,
-        qrCodeData,
-        paymentMethod,
-        amountInserted,
-        changeGiven
+        amountPaid
       } = ticketData;
 
-      // Insert ticket
+      // Insert ticket - only storing age, amount_paid, and facility
       const insertTicketQuery = `
         INSERT INTO tickets (
-          reference_number, name, age, captured_image, facility, 
-          payment_amount, original_price, has_discount, date_created, 
-          date_expiry, qr_code_data, transaction_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          reference_number, age, facility, amount_paid, transaction_status
+        ) VALUES (?, ?, ?, ?, ?)
       `;
 
       const ticketResult = this.db.run(insertTicketQuery, [
         referenceNumber,
-        name,
         age || null,
-        capturedImage || null,
         facility,
-        paymentAmount,
-        originalPrice || paymentAmount,
-        hasDiscount ? 1 : 0,
-        dateCreated,
-        dateExpiry,
-        qrCodeData || null,
+        amountPaid,
         'completed'
       ]);
 
       const ticketId = ticketResult.lastInsertRowid;
-
-      // Insert payment method information
-      if (paymentMethod && amountInserted) {
-        const insertPaymentQuery = `
-          INSERT INTO payment_methods (ticket_id, method_type, amount_inserted, change_given)
-          VALUES (?, ?, ?, ?)
-        `;
-
-        this.db.run(insertPaymentQuery, [
-          ticketId,
-          paymentMethod,
-          amountInserted,
-          changeGiven || 0
-        ]);
-      }
-
-      // Save database
-      this.saveDatabase();
 
       console.log('Ticket inserted successfully with ID:', ticketId);
       return { success: true, ticketId, referenceNumber };

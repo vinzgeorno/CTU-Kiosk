@@ -19,6 +19,7 @@ from datetime import datetime
 # ── Pin assignments ───────────────────────────────────────────────
 COIN_PIN = 27
 BILL_PIN = 26
+SERVO_PIN = 17  # PWM-capable GPIO pin for servo control (can also use GPIO 18)
 
 # ── MQTT config ───────────────────────────────────────────────────
 BROKER = 'localhost'  # or IP of your MQTT broker
@@ -26,6 +27,16 @@ PORT = 1883
 TOPIC_BILL = 'ctu-kiosk/payment/bill'
 TOPIC_COIN = 'ctu-kiosk/payment/coin'
 TOPIC_DISPENSE = 'ctu-kiosk/payment/dispense'
+
+# ── Servo config (Change Dispenser) ────────────────────────────────
+SERVO_REST_ANGLE = 0       # Rest position (no dispensing)
+SERVO_PUSH_ANGLE = 100      # Push position (dispenses coin)
+SERVO_MOVE_DELAY = 0.2     # 300ms for servo movement
+SERVO_DWELL_TIME = 0.5     # 500ms to let coin drop before returning (NEW)
+SERVO_COIN_GAP = 0.75       # 500ms gap between coins
+SERVO_PWM_FREQ = 50        # PWM frequency for servo (50 Hz standard)
+servo_pwm = None           # Will be initialized on-demand when dispense is needed
+servo_initialized = False  # Track if servo has been initialized
 
 # ── Shared state ──────────────────────────────────────────────────
 credit = 0
@@ -36,25 +47,193 @@ coin_pulse_count = 0
 coin_last_pulse_time = 0.0
 COIN_GAP_TIMEOUT = 0.5   # 500ms gap = end of coin pulse burst
 COIN_DEBOUNCE_MS = 50
+COIN_MIN_PULSE_WIDTH = 0.02  # 20ms minimum pulse width to filter noise
 
 PULSE_TO_VALUE = {
-    1: 1,
-    2: 5,
-    5: 5,
-    10: 10,
-    20: 20
+    1: 1,      # 1 pulse = ₱1
+    5: 5,      # 5 pulses = ₱5
+    10: 10,    # 10 pulses = ₱10
+    20: 20,    # 20 pulses = ₱20
+    4: 5,      # 4 pulses = ₱5 (old 5 PHP coin variant)
+    6: 5,      # 6 pulses = ₱5 (old 5 PHP coin variant)
+    9: 10,     # 9 pulses = ₱10 (old 10 PHP coin variant)
+    11: 10,    # 11 pulses = ₱10 (old 10 PHP coin variant)
+    19: 20,    # 19 pulses = ₱20 (old 20 PHP coin variant)
+    21: 20     # 21 pulses = ₱20 (old 20 PHP coin variant)
 }
 
 # ── Bill config ───────────────────────────────────────────────────
 bill_pulse_count = 0
 bill_last_pulse_time = 0.0
-BILL_VALUE_PER_PULSE = 10  # 1 pulse = ₱10
-BILL_DONE_TIMEOUT = 0.25   # 250ms gap = end of bill pulse burst
-BILL_DEBOUNCE_MS = 20
+BILL_DONE_TIMEOUT = 0.75   # 750ms gap = end of bill pulse burst (increased from 250ms to allow all pulses)
+BILL_DEBOUNCE_MS = 30      # Increased from 20ms for more stable reading
+BILL_MIN_PULSE_WIDTH = 0.02  # 20ms minimum pulse width to filter noise
+
+# Bill denominations and their typical pulse counts (for rounding to closest value)
+BILL_DENOMINATIONS = {
+    10: 1,      # ₱10 = 1 pulse
+    20: 2,      # ₱20 = 2 pulses
+    50: 5,      # ₱50 = 5 pulses
+    100: 10     # ₱100 = 10 pulses
+}
 
 # ── DEBUG: Track all pulses received ───────────────────────────────
 pulse_log = []
 MAX_PULSE_LOG = 100
+
+
+def debug_print_pulses(source, pulse_count, value=None):
+    """Debug function to print pulses received from actual components to terminal"""
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    
+    if value:
+        log_entry = f"[{timestamp}] [DEBUG] {source}: {pulse_count} pulses → ₱{value}"
+    else:
+        log_entry = f"[{timestamp}] [DEBUG] {source}: Real pulse detected! Count: {pulse_count}"
+    
+    print(log_entry)
+    pulse_log.append(log_entry)
+    
+    # Keep only last 100 entries
+    if len(pulse_log) > MAX_PULSE_LOG:
+        pulse_log.pop(0)
+
+
+# ── Servo Control Functions ────────────────────────────────────────
+
+def angle_to_pwm(angle):
+    """Convert servo angle (0-180) to PWM duty cycle (2-12%)"""
+    # Standard servo: 1ms pulse = 0°, 1.5ms pulse = 90°, 2ms pulse = 180°
+    # PWM: 2-12% duty at 50Hz = 1-2ms pulse width
+    duty_cycle = 2.0 + (angle / 180.0) * 10.0
+    return duty_cycle
+
+
+def set_servo_angle(angle):
+    """Set servo to specified angle (0-180)"""
+    global servo_pwm
+    if servo_pwm is None:
+        print("⚠️  Servo not initialized")
+        return
+    
+    duty = angle_to_pwm(angle)
+    try:
+        servo_pwm.ChangeDutyCycle(duty)
+        time.sleep(0.05)  # Small delay for PWM update to take effect
+        print(f"🔧 Servo angle set to {angle}° (PWM duty: {duty:.1f}%)")
+    except Exception as e:
+        print(f"❌ Error setting servo angle: {e}")
+
+
+def initialize_servo():
+    """Initialize servo GPIO - called only when dispense is needed"""
+    global servo_pwm, servo_initialized
+    
+    if servo_initialized:
+        print("ℹ️  Servo already initialized, skipping...")
+        return True
+    
+    try:
+        print("\n🔧 [SERVO] Initializing on-demand for dispense operation...")
+        
+        # Setup GPIO for servo
+        try:
+            GPIO.setup(SERVO_PIN, GPIO.OUT, initial=GPIO.LOW)
+        except RuntimeError:
+            # Already configured
+            pass
+        
+        time.sleep(0.2)
+        
+        # Initialize PWM directly at REST position (no unnecessary movement!)
+        time.sleep(0.5)  # Extra stabilization before PWM creation
+        servo_pwm = GPIO.PWM(SERVO_PIN, SERVO_PWM_FREQ)
+        rest_duty = angle_to_pwm(SERVO_REST_ANGLE)
+        servo_pwm.ChangeDutyCycle(rest_duty)  # Set duty before starting
+        servo_pwm.start(rest_duty)  # Start directly at rest, no intermediate steps
+        time.sleep(0.5)  # Extra stabilization after PWM starts
+        
+        servo_initialized = True
+        print(f"✅ [SERVO] Initialized at rest position on GPIO {SERVO_PIN}\n")
+        return True
+        
+    except Exception as e:
+        print(f"❌ [SERVO] Initialization failed: {e}\n")
+        return False
+
+
+def cleanup_servo():
+    """Clean up servo GPIO - called after dispense is complete"""
+    global servo_pwm, servo_initialized
+    
+    try:
+        if servo_pwm is not None:
+            servo_pwm.stop()
+            servo_pwm = None
+        servo_initialized = False
+        print("✅ [SERVO] Cleaned up and released GPIO\n")
+    except Exception as e:
+        print(f"⚠️  [SERVO] Cleanup error: {e}\n")
+
+
+def push_coin():
+    """Dispense a single coin"""
+    global servo_pwm
+    if servo_pwm is None:
+        print("⚠️  Servo not initialized, skipping coin dispense")
+        return
+    
+    # Push
+    print(f"    → Pushing to {SERVO_PUSH_ANGLE}°")
+    set_servo_angle(SERVO_PUSH_ANGLE)
+    time.sleep(SERVO_MOVE_DELAY)
+    
+    # Dwell - let coin drop before returning
+    print(f"    → Dwelling for {SERVO_DWELL_TIME}s (coin drops)")
+    time.sleep(SERVO_DWELL_TIME)
+    
+    # Return to rest
+    print(f"    → Returning to {SERVO_REST_ANGLE}°")
+    set_servo_angle(SERVO_REST_ANGLE)
+    time.sleep(SERVO_MOVE_DELAY)
+    
+    print("💰 Coin dispensed")
+
+
+def dispense_coins(num_coins):
+    """Dispense specified number of 5PHP coins"""
+    if num_coins <= 0:
+        print("⚠️  Invalid coin count")
+        return False
+    
+    change_amount = num_coins * 5  # Each coin is ₱5
+    print(f"\n🎯 === AUTO-DISPENSE: {num_coins} × ₱5 coins (Total: ₱{change_amount}) ===")
+    print(f"📋 Plan: Initialize servo → Loop {num_coins} times → Each push_coin() does 1 push")
+    
+    try:
+        # Initialize servo only when needed
+        if not initialize_servo():
+            print("❌ Failed to initialize servo")
+            return False
+        
+        print(f"🔄 Starting dispense loop with {num_coins} iterations...")
+        
+        for i in range(num_coins):
+            print(f"[{i+1}/{num_coins}] Dispensing ₱5 coin...")
+            push_coin()
+            if i < num_coins - 1:
+                time.sleep(SERVO_COIN_GAP)
+        
+        print(f"✅ Successfully dispensed ₱{change_amount} as change")
+        
+        # Clean up servo after dispensing
+        cleanup_servo()
+        return True
+        
+    except Exception as e:
+        print(f"❌ Dispense failed: {e}")
+        cleanup_servo()
+        return False
 
 
 def debug_print_pulses(source, pulse_count, value=None):
@@ -91,10 +270,24 @@ def on_message(client, userdata, msg):
     if msg.topic == TOPIC_DISPENSE:
         try:
             data = json.loads(msg.payload.decode())
-            print(f"📨 [MQTT] Dispense command received: ₱{data.get('amount', 0)}")
-            # Placeholder for servo control when hardware is ready
+            amount = data.get('amount', 0)
+            print(f"📨 [MQTT] Dispense command received: ₱{amount}")
+            
+            # Calculate number of 5PHP coins
+            # Only 5PHP coins are used (all transactions end in 5 or 0)
+            if amount % 5 == 0:
+                num_coins = int(amount / 5)
+                if num_coins > 0:
+                    print(f"💰 Change calculation: ₱{amount} = {num_coins} × ₱5 coins")
+                    dispense_coins(num_coins)
+                else:
+                    print("⚠️  No change to dispense")
+            else:
+                print(f"❌ [DISPENSE] Invalid change amount: ₱{amount} (not divisible by 5)")
         except json.JSONDecodeError:
             print(f"❌ [MQTT] Invalid JSON in dispense message")
+        except Exception as e:
+            print(f"❌ [MQTT] Error processing dispense: {e}")
 
 
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
@@ -110,22 +303,54 @@ def coin_pulse_callback(channel):
     """Real coin detector callback - detects pulses from actual hardware"""
     global coin_pulse_count, coin_last_pulse_time, credit
     now = time.time()
+    time_since_last = now - coin_last_pulse_time
     
-    if (now - coin_last_pulse_time) > (COIN_DEBOUNCE_MS / 1000.0):
-        coin_pulse_count += 1
-        coin_last_pulse_time = now
-        debug_print_pulses("COIN", coin_pulse_count)
+    # Multi-level filtering to reduce noise from signal lines:
+    # 1. Debounce: ignore pulses closer than 50ms (standard debounce)
+    # 2. Minimum pulse width: 20ms (filter sub-20ms noise spikes)
+    # 3. Max frequency: ignore if pulses < 100ms apart (unrealistic coin insertion speed)
+    
+    if time_since_last > (COIN_DEBOUNCE_MS / 1000.0):
+        # Check if this is a realistic pulse (not too soon after last one)
+        if time_since_last > (COIN_MIN_PULSE_WIDTH):
+            coin_pulse_count += 1
+            coin_last_pulse_time = now
+            # REAL-TIME debug: Show each pulse immediately
+            timestamp = time.strftime('%H:%M:%S', time.localtime())
+            print(f"🪙 [{timestamp}] COIN pulse #{coin_pulse_count} received")
+        else:
+            # Noise spike detected
+            print(f"⚠️  [COIN] Noise filtered: pulse too soon ({time_since_last*1000:.1f}ms)")
 
 
 def bill_pulse_callback(channel):
     """Real bill detector callback - detects pulses from actual hardware"""
     global bill_pulse_count, bill_last_pulse_time, credit
     now = time.time()
+    time_since_last = now - bill_last_pulse_time
     
-    if (now - bill_last_pulse_time) > (BILL_DEBOUNCE_MS / 1000.0):
+    # Multi-level filtering for bill pulses (more lenient than coins to prevent pulse loss):
+    # 1. Debounce: ignore pulses closer than BILL_DEBOUNCE_MS (30ms)
+    # 2. First pulse always accepted
+    # 3. Subsequent pulses need minimum spacing
+    
+    if bill_pulse_count == 0:
+        # First pulse - always accept
+        bill_pulse_count = 1
+        bill_last_pulse_time = now
+        timestamp = time.strftime('%H:%M:%S', time.localtime())
+        print(f"💵 [{timestamp}] BILL pulse #{bill_pulse_count} received (START)")
+    elif time_since_last > (BILL_DEBOUNCE_MS / 1000.0):
+        # Subsequent pulses - check debounce timing
         bill_pulse_count += 1
         bill_last_pulse_time = now
-        debug_print_pulses("BILL", bill_pulse_count)
+        timestamp = time.strftime('%H:%M:%S', time.localtime())
+        print(f"💵 [{timestamp}] BILL pulse #{bill_pulse_count} received")
+    else:
+        # Too soon - noise spike
+        time_since_ms = time_since_last * 1000
+        if time_since_ms > 5:  # Only print if not extremely fast
+            print(f"⚠️  [BILL] Noise filtered: pulse too soon ({time_since_ms:.1f}ms, need >{BILL_DEBOUNCE_MS}ms)")
 
 
 # ── Process & Publish Events ──────────────────────────────────────
@@ -136,11 +361,13 @@ def publish_coin_event(mqtt_client, pulses):
     value = PULSE_TO_VALUE.get(pulses)
     
     if value is None:
-        print(f"❌ [COIN] Unknown coin: {pulses} pulses")
+        print(f"❌ [COIN] Unknown coin: {pulses} pulses (not in mapping)")
+        print(f"   Known mappings: {PULSE_TO_VALUE}")
         return
     
     credit += value
-    debug_print_pulses("COIN_COMPLETE", pulses, value)
+    timestamp = time.strftime('%H:%M:%S', time.localtime())
+    print(f"\n✅ [{timestamp}] COIN COMPLETE: {pulses} pulses → ₱{value} (Total: ₱{credit})\n")
     
     payload = json.dumps({
         "pulses": pulses,
@@ -151,15 +378,30 @@ def publish_coin_event(mqtt_client, pulses):
     })
     
     mqtt_client.publish(TOPIC_COIN, payload)
-    print(f"✅ [MQTT] Published COIN event: ₱{value} | Total: ₱{credit}")
+
+
+def round_bill_pulses_to_value(pulses):
+    """Round pulse count to the closest valid bill denomination"""
+    # Find the denomination with the closest typical pulse count
+    closest_value = min(
+        BILL_DENOMINATIONS.keys(),
+        key=lambda denom: abs(BILL_DENOMINATIONS[denom] - pulses)
+    )
+    return closest_value
 
 
 def publish_bill_event(mqtt_client, pulses):
-    """Publish bill event to MQTT"""
+    """Publish bill event to MQTT with automatic pulse-to-denomination rounding"""
     global credit
-    added = pulses * BILL_VALUE_PER_PULSE
+    added = round_bill_pulses_to_value(pulses)
+    
+    if added is None:
+        print(f"❌ [BILL] Failed to round bill: {pulses} pulses")
+        return
+    
     credit += added
-    debug_print_pulses("BILL_COMPLETE", pulses, added)
+    timestamp = time.strftime('%H:%M:%S', time.localtime())
+    print(f"\n✅ [{timestamp}] BILL COMPLETE: {pulses} pulses → ₱{added} (Total: ₱{credit})\n")
     
     payload = json.dumps({
         "pulses": pulses,
@@ -170,7 +412,6 @@ def publish_bill_event(mqtt_client, pulses):
     })
     
     mqtt_client.publish(TOPIC_BILL, payload)
-    print(f"✅ [MQTT] Published BILL event: ₱{added} | Total: ₱{credit}")
 
 
 # ── Main Processing Loop ──────────────────────────────────────────
@@ -206,22 +447,35 @@ def main():
     print(f"💰 Coin → GPIO {COIN_PIN} | 💵 Bill → GPIO {BILL_PIN}")
     print(f"📡 MQTT Broker: {BROKER}:{PORT}")
     print(f"💰 Coin pulse map: {PULSE_TO_VALUE}")
-    print(f"💵 Bill: ₱{BILL_VALUE_PER_PULSE} per pulse\n")
+    print(f"💵 Bill denominations: {BILL_DENOMINATIONS}")
+    print(f"   Timeout: {BILL_DONE_TIMEOUT}s | Debounce: {BILL_DEBOUNCE_MS}ms")
+    print(f"   (Bills auto-round to closest denomination)\n")
     
     # Setup GPIO with comprehensive error handling
     gpio_available = False
     try:
-        # Clean up any previous GPIO setup
+        # Clean up any previous GPIO setup - use shell command for more aggressive cleanup
+        try:
+            import subprocess
+            subprocess.run(['gpio', 'reset'], check=False, capture_output=True)
+        except:
+            pass
+        
         try:
             GPIO.cleanup()
         except:
             pass
         
+        # Small delay after cleanup to let GPIO settle
+        time.sleep(0.5)
+        
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(COIN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(BILL_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # NOTE: Servo GPIO will be initialized on-demand when dispense is needed
         
-        print("✅ GPIO pins initialized")
+        print("✅ Payment hardware GPIO initialized (coin & bill detectors)")
+        print("ℹ️  Servo GPIO will be initialized only when change needs to be dispensed\n")
         
         # Add GPIO event detection
         try:
@@ -300,6 +554,11 @@ def main():
     finally:
         if gpio_available:
             try:
+                # Stop servo PWM
+                if servo_pwm is not None:
+                    servo_pwm.stop()
+                    print("✅ Servo PWM stopped")
+                
                 GPIO.cleanup()
                 print("✅ GPIO cleaned up")
             except:

@@ -261,12 +261,50 @@ class PaymentHardware {
   }
 
   /**
-   * Dispense change
+   * Dispense change - converts amount to 5PHP coins and sends MQTT command
    */
   dispenseChange(amount) {
-    console.log(`🪙 Dispensing change: ₱${amount}`);
-    // This would trigger servo control in real hardware
-    return { success: true, amount, timestamp: new Date().toISOString() };
+    console.log(`🪙 Requesting change dispense: ₱${amount}`);
+    
+    // Validate amount is divisible by 5 (only 5PHP coins available)
+    if (amount % 5 !== 0) {
+      console.log(`❌ Invalid change amount: ₱${amount} (not divisible by 5)`);
+      return { success: false, amount, reason: 'Amount not divisible by 5' };
+    }
+    
+    const numCoins = parseInt(amount / 5);
+    console.log(`💰 Change breakdown: ₱${amount} = ${numCoins} × ₱5 coins`);
+    
+    // Send MQTT dispense command via WebSocket if available
+    if (window.dispenseWebSocket && window.dispenseWebSocket.readyState === WebSocket.OPEN) {
+      const command = {
+        type: 'dispense',
+        amount: amount,
+        coins: numCoins,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`📤 [DISPENSE] Sending via WebSocket:`, command);
+      window.dispenseWebSocket.send(JSON.stringify(command));
+      
+      return { 
+        success: true, 
+        amount, 
+        coins: numCoins,
+        method: 'mqtt',
+        timestamp: new Date().toISOString() 
+      };
+    } else {
+      // Fallback: simulate dispense if hardware not connected
+      console.log(`⚠️  Hardware not connected, simulating dispense...`);
+      return { 
+        success: true, 
+        amount, 
+        coins: numCoins,
+        method: 'simulated',
+        timestamp: new Date().toISOString() 
+      };
+    }
   }
 
   /**

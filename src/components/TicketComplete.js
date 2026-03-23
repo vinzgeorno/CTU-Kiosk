@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { FaCheckCircle, FaHome, FaPrint } from 'react-icons/fa';
 import database from '../utils/indexedDatabase';
+import supabaseSync from '../utils/supabaseSync';
 import './TicketComplete.css';
 
 function TicketComplete({ userData, setUserData }) {
@@ -17,6 +18,9 @@ function TicketComplete({ userData, setUserData }) {
     
     // Generate QR code when component mounts
     generateQRCode();
+
+    // Auto-print ticket immediately on page load
+    printTicket();
 
     // Auto-return to main page after 15 seconds
     const countdownTimer = setInterval(() => {
@@ -49,44 +53,68 @@ function TicketComplete({ userData, setUserData }) {
 
   const saveTicketToDatabase = async () => {
     try {
-      const currentDate = new Date();
-      const expiryDate = new Date();
-      expiryDate.setHours(23, 59, 59, 999); // End of current day
-
-      const qrData = {
-        transactionId: userData.transactionId,
-        name: userData.name,
-        facility: userData.selectedBuilding?.name,
-        amount: userData.ticketPrice,
-        date: currentDate.toISOString(),
-        validUntil: expiryDate.getTime()
-      };
-
       const ticketData = {
         referenceNumber: userData.transactionId,
-        name: userData.name,
         age: userData.age,
         facility: userData.selectedBuilding?.name,
-        paymentAmount: userData.ticketPrice,
-        originalPrice: userData.originalPrice || userData.ticketPrice,
-        hasDiscount: userData.hasDiscount || false,
-        dateCreated: currentDate.toISOString(),
-        dateExpiry: expiryDate.toISOString(),
-        qrCodeData: JSON.stringify(qrData),
-        paymentMethod: userData.paymentMethod || 'cash',
-        amountInserted: userData.amountInserted || userData.ticketPrice,
-        changeGiven: userData.changeGiven || 0
+        amountPaid: userData.ticketPrice
       };
 
       const result = await database.insertTicket(ticketData);
       
       if (result.success) {
         console.log('Ticket saved to database successfully:', result.referenceNumber);
+        
+        // Attempt to sync immediately after transaction completion
+        syncTicketToCloud(userData.transactionId);
       } else {
         console.error('Failed to save ticket to database:', result.error);
       }
     } catch (error) {
       console.error('Error saving ticket to database:', error);
+    }
+  };
+
+  const syncTicketToCloud = async (referenceNumber) => {
+    try {
+      // Check if Supabase is configured
+      const config = localStorage.getItem('supabase_config');
+      if (!config) {
+        console.log('Supabase not configured, ticket will sync when configured');
+        return;
+      }
+
+      // Initialize supabase sync if not already done
+      const savedConfig = JSON.parse(config);
+      if (!supabaseSync.isConfigured) {
+        supabaseSync.initialize(savedConfig.url, savedConfig.key);
+      }
+
+      // Check connectivity
+      const connectivity = await supabaseSync.checkConnectivity();
+      if (!connectivity.connected) {
+        console.log('No internet connection, ticket will sync when online');
+        return;
+      }
+
+      // Get the ticket from local database
+      const ticketResult = await database.getTicketByReference(referenceNumber);
+      if (!ticketResult.success) {
+        console.error('Could not find ticket to sync');
+        return;
+      }
+
+      // Sync the single ticket
+      const syncResult = await supabaseSync.syncTicket(ticketResult.ticket);
+      if (syncResult.success) {
+        // Mark as synced in local database
+        await supabaseSync.markTicketAsSynced(referenceNumber);
+        console.log('Ticket synced to cloud successfully');
+      } else {
+        console.log('Ticket saved locally, will sync when online:', syncResult.error);
+      }
+    } catch (error) {
+      console.error('Error syncing ticket to cloud:', error);
     }
   };
 
@@ -187,14 +215,11 @@ function TicketComplete({ userData, setUserData }) {
       
       if (result.success) {
         console.log('✅ Ticket printed successfully');
-        alert('Ticket printed successfully!');
       } else {
         console.error('❌ Print failed:', result.error);
-        alert(`Failed to print ticket: ${result.error}`);
       }
     } catch (error) {
       console.error('Error printing ticket:', error);
-      alert(`Error: Make sure backend is running on localhost:8081. ${error.message}`);
     }
     
     setIsPrinting(false);

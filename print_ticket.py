@@ -28,57 +28,53 @@ def print_ticket(data):
         has_discount = data.get('hasDiscount', False)
         transaction_id = data.get('transactionId', '')
         
-        # Print ticket using basic text methods
+        # Compact layout to save paper
+        printer.set(align='center')
+        
+        # Print ticket header
         printer.text('BUILDING ACCESS\n')
         printer.text('VISITOR PASS\n')
-        printer.text('=' * 42 + '\n\n')
+        printer.text('=' * 32 + '\n')
         
-        printer.text(f'FACILITY: {facility.upper()}\n')
-        printer.text(f'AGE GROUP: {age}\n')
-        printer.text(f'TICKET #: {ticket_number}\n\n')
+        # Info section (compact)
+        printer.text(f'FACILITY: {facility[:18].upper()}\n')
+        printer.text(f'AGE: {age}\n')
+        printer.text(f'TICKET: {ticket_number}\n')
         
         # Price section
         if has_discount:
-            printer.text(f'Original Price: ₱{original_price}\n')
-            printer.text(f'FINAL PRICE:   ₱{discount_price}\n\n')
+            printer.text(f'Original: ₱{original_price}\n')
+            printer.text(f'PAY: ₱{discount_price}\n')
         else:
-            printer.text(f'PRICE: ₱{discount_price}\n\n')
+            printer.text(f'PAY: ₱{discount_price}\n')
         
-        printer.text('Valid Until: 11:59 PM TODAY\n')
-        printer.text('=' * 42 + '\n\n')
+        printer.text('Valid: 11:59 PM\n')
+        printer.text('=' * 32 + '\n')
+        printer.text(f'ID: {transaction_id}\n')
         
-        # Transaction ID
-        printer.text(f'TICKET: {transaction_id}\n\n')
-        
-        # Generate and print QR code
+        # Generate and print smaller QR code (120px)
         try:
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M,
-                box_size=8,
+                box_size=5,  # Reduced from 8
                 border=1,
             )
             qr.add_data(transaction_id)
             qr.make(fit=True)
             
-            # Create QR code image
             qr_img = qr.make_image(fill_color="black", back_color="white")
-            
-            # Resize to fit 32 chars width on thermal printer (approx 200 pixels)
-            qr_img = qr_img.resize((200, 200), Image.Resampling.LANCZOS)
-            
-            # Convert to ESC/POS compatible format
+            qr_img = qr_img.resize((120, 120), Image.Resampling.LANCZOS)
             printer.image(qr_img, high_density_vertical=True, high_density_horizontal=True)
-            printer.text('\n')
         except Exception as e:
             print(f"Warning: Could not print QR code: {e}", file=sys.stderr)
-            printer.text('QR Code: [Unavailable]\n')
+            printer.text('QR: [N/A]\n')
         
-        # Footer
-        printer.text('Keep this ticket with you\n')
-        printer.text('Scan at entrance on arrival\n\n')
+        # Compact footer
+        printer.text('\nKeep with you\n')
         
-        # Cut paper
+        # Reset text settings and cut paper
+        printer.set(align='center')
         try:
             printer.cut()
         except:

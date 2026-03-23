@@ -115,43 +115,24 @@ class IndexedDatabase {
 
       const {
         referenceNumber,
-        name,
         age,
-        capturedImage,
         facility,
-        paymentAmount,
-        originalPrice,
-        hasDiscount,
-        dateCreated,
-        dateExpiry,
-        qrCodeData,
-        paymentMethod,
-        amountInserted,
-        changeGiven
+        amountPaid
       } = ticketData;
 
       const ticket = {
         reference_number: referenceNumber,
-        name: name,
         age: age || null,
-        captured_image: capturedImage || null,
         facility: facility,
-        payment_amount: paymentAmount,
-        original_price: originalPrice || paymentAmount,
-        has_discount: hasDiscount ? 1 : 0,
-        date_created: dateCreated,
-        date_expiry: dateExpiry,
-        qr_code_data: qrCodeData || null,
+        amount_paid: amountPaid,
         transaction_status: 'completed',
         synced_to_cloud: false,
         synced_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
 
-      const transaction = this.db.transaction(['tickets', 'payment_methods'], 'readwrite');
+      const transaction = this.db.transaction(['tickets'], 'readwrite');
       const ticketStore = transaction.objectStore('tickets');
-      const paymentStore = transaction.objectStore('payment_methods');
 
       // Insert ticket
       const ticketRequest = ticketStore.add(ticket);
@@ -159,19 +140,6 @@ class IndexedDatabase {
         ticketRequest.onsuccess = () => resolve(ticketRequest.result);
         ticketRequest.onerror = () => reject(ticketRequest.error);
       });
-
-      // Insert payment method information
-      if (paymentMethod && amountInserted) {
-        const paymentData = {
-          ticket_id: ticketId,
-          method_type: paymentMethod,
-          amount_inserted: amountInserted,
-          change_given: changeGiven || 0,
-          created_at: new Date().toISOString()
-        };
-
-        paymentStore.add(paymentData);
-      }
 
       console.log('Ticket inserted successfully with ID:', ticketId);
       return { success: true, ticketId, referenceNumber };

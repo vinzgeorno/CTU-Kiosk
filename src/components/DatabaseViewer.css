@@ -397,6 +397,187 @@
   border: 1px solid #ddd;
 }
 
+/* Sync Message */
+.sync-message {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.sync-message.syncing {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+}
+
+.sync-message.success {
+  background: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #388e3c;
+}
+
+/* Sync Status Filter */
+.sync-status-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sync-status-filter label {
+  font-weight: 600;
+  color: #333;
+}
+
+.sync-status-filter .filter-btn {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.sync-status-filter .filter-btn:hover {
+  background: #e0e0e0;
+}
+
+.sync-status-filter .filter-btn.active {
+  background: #2196F3;
+  color: white;
+  border-color: #2196F3;
+}
+
+.sync-status-filter .filter-btn.warning {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffc107;
+}
+
+.sync-status-filter .filter-btn.warning.active {
+  background: #ffc107;
+  color: white;
+  border-color: #ff9800;
+}
+
+.sync-status-filter .sync-now-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: background 0.3s;
+  margin-left: auto;
+}
+
+.sync-status-filter .sync-now-btn:hover {
+  background: #45a049;
+}
+
+.sync-status-filter .sync-now-btn:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+/* Sync Status in Table */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sync-status.synced {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.sync-status.unsynced {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* Table Row Highlighting */
+.tickets-table tbody tr.synced-row {
+  background: #f5fff5;
+}
+
+.tickets-table tbody tr.unsynced-row {
+  background: #fff9f0;
+}
+
+.tickets-table tbody tr:hover {
+  background: #f0f0f0 !important;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.sync-btn {
+  background: #f9a825;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-btn:hover {
+  background: #e89f1d;
+}
+
+/* Modal Detail Actions */
+.detail-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.sync-now-modal-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s;
+}
+
+.sync-now-modal-btn:hover {
+  background: #45a049;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .database-viewer {

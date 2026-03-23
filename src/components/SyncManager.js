@@ -25,9 +25,9 @@ function SyncManager() {
     // Load sync stats
     loadSyncStats();
 
-    // Check if auto-sync is enabled
-    const autoSync = localStorage.getItem('auto_sync_enabled') === 'true';
-    setAutoSyncEnabled(autoSync);
+    // Auto-sync is always enabled by default
+    setAutoSyncEnabled(true);
+    localStorage.setItem('auto_sync_enabled', 'true');
 
     // Listen for online/offline events
     const handleOnline = () => setIsOnline(true);
@@ -36,24 +36,20 @@ function SyncManager() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Auto-sync interval (every 5 minutes if enabled and online)
-    let autoSyncInterval;
-    if (autoSync) {
-      autoSyncInterval = setInterval(() => {
-        if (navigator.onLine && !isSyncing) {
-          handleSync(true); // Silent sync
-        }
-      }, 5 * 60 * 1000); // 5 minutes
-    }
+    // Auto-sync interval (every 5 minutes if online)
+    // Auto-sync is always enabled
+    const autoSyncInterval = setInterval(() => {
+      if (navigator.onLine && !isSyncing) {
+        handleSync(true); // Silent sync
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      if (autoSyncInterval) {
-        clearInterval(autoSyncInterval);
-      }
+      clearInterval(autoSyncInterval);
     };
-  }, [autoSyncEnabled, isSyncing]);
+  }, [isSyncing]);
 
   const loadConfiguration = () => {
     const savedConfig = localStorage.getItem('supabase_config');
@@ -284,10 +280,12 @@ function SyncManager() {
             <input
               type="checkbox"
               checked={autoSyncEnabled}
-              onChange={toggleAutoSync}
+              disabled={true}
+              readOnly={true}
             />
-            <span>Enable Auto-Sync (every 5 minutes)</span>
+            <span>✓ Auto-Sync Enabled (every 5 minutes)</span>
           </label>
+          <p className="auto-sync-info">Auto-sync is always enabled. Data syncs automatically in the background every 5 minutes when online, and also immediately after each transaction.</p>
         </div>
 
         <button

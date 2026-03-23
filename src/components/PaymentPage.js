@@ -90,6 +90,9 @@ function PaymentPage({ userData, setUserData }) {
         setConnectionStatus('connected');
         addLog('🌐 Live hardware connected');
         
+        // Store WebSocket globally for dispense commands
+        window.dispenseWebSocket = newWs;
+        
         // Request initial status
         newWs.send(JSON.stringify({ type: 'status' }));
       };
@@ -148,7 +151,13 @@ function PaymentPage({ userData, setUserData }) {
     
     lastProcessedCoinRef.current = pulseKey;
     console.log('⚡ [REAL HARDWARE] Coin pulse detected:', data);
-    setInsertedAmount(prev => prev + (data.value || 0));
+    console.log(`💰 [FRONTEND] Adding ₱${data.value} to insertedAmount`);
+    console.log(`💰 [FRONTEND] Old total: ₱${insertedAmount}, New total: ₱${insertedAmount + (data.value || 0)}`);
+    setInsertedAmount(prev => {
+      const newAmount = prev + (data.value || 0);
+      console.log(`💰 [FRONTEND] Updated: ₱${prev} → ₱${newAmount}`);
+      return newAmount;
+    });
     addLog(`⚡ [REAL COIN] +₱${data.value}`);
   };
 
@@ -165,7 +174,13 @@ function PaymentPage({ userData, setUserData }) {
     
     lastProcessedBillRef.current = pulseKey;
     console.log('⚡ [REAL HARDWARE] Bill pulse detected:', data);
-    setInsertedAmount(prev => prev + (data.amount || 0));
+    console.log(`💵 [FRONTEND] Adding ₱${data.amount} to insertedAmount`);
+    console.log(`💵 [FRONTEND] Old total: ₱${insertedAmount}, New total: ₱${insertedAmount + (data.amount || 0)}`);
+    setInsertedAmount(prev => {
+      const newAmount = prev + (data.amount || 0);
+      console.log(`💵 [FRONTEND] Updated: ₱${prev} → ₱${newAmount}`);
+      return newAmount;
+    });
     addLog(`⚡ [REAL BILL] +₱${data.amount}`);
   };
 
@@ -188,13 +203,27 @@ function PaymentPage({ userData, setUserData }) {
       console.log('🎫 Processing Payment:', {
         transactionId,
         amountInserted: insertedAmount,
+        ticketPrice: userData.ticketPrice,
         changeGiven: changeAmount
       });
 
-      // Dispense change if needed
+      // Auto-dispense change if needed (only 5PHP coins)
       if (changeAmount > 0) {
-        const dispenseResult = paymentHardware.dispenseChange(changeAmount);
-        addLog(`🪙 Change dispensed: ₱${changeAmount} - ${dispenseResult.success ? 'Success' : 'Failed'}`);
+        if (changeAmount % 5 === 0) {
+          console.log(`💰 AUTO-DISPENSING CHANGE: ₱${changeAmount}`);
+          const dispenseResult = paymentHardware.dispenseChange(changeAmount);
+          
+          if (dispenseResult.success) {
+            addLog(`✅ Change dispense triggered: ₱${changeAmount} (${dispenseResult.coins} × ₱5)`);
+            console.log('🪙 Dispense command sent:', dispenseResult);
+          } else {
+            addLog(`⚠️ Change dispense failed: ${dispenseResult.reason}`);
+          }
+        } else {
+          addLog(`⚠️ Cannot dispense change: ₱${changeAmount} not divisible by 5`);
+        }
+      } else {
+        addLog(`ℹ️ No change needed`);
       }
       
       // Update user data with payment information

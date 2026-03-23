@@ -180,39 +180,18 @@ class SupabaseSync {
         }
       }
 
-      // Upload image to Supabase Storage if exists
-      let imageUrl = null;
-      if (ticket.captured_image) {
-        const uploadResult = await this.uploadImage(
-          ticket.captured_image,
-          ticket.reference_number
-        );
-        imageUrl = uploadResult.url;
-      }
-
-      // Prepare ticket data for Supabase
+      // Prepare ticket data for Supabase - only age, amount_paid, and facility
       const ticketData = {
         reference_number: ticket.reference_number,
-        name: ticket.name,
         age: ticket.age,
-        captured_image_url: imageUrl, // Store URL instead of base64
         facility: ticket.facility,
-        payment_amount: ticket.payment_amount,
-        original_price: ticket.original_price,
-        has_discount: ticket.has_discount === 1,
-        date_created: ticket.date_created,
-        date_expiry: ticket.date_expiry,
-        qr_code_data: ticket.qr_code_data,
-        transaction_status: ticket.transaction_status,
-        method_type: ticket.method_type,
-        amount_inserted: ticket.amount_inserted,
-        change_given: ticket.change_given,
+        amount_paid: ticket.amount_paid,
         synced_at: new Date().toISOString()
       };
 
-      // Insert into Supabase (upsert to handle duplicates)
+      // Insert into Supabase new simplified table (upsert to handle duplicates)
       const { data, error } = await this.supabase
-        .from('tickets')
+        .from('tickets_new')
         .upsert(ticketData, { 
           onConflict: 'reference_number',
           ignoreDuplicates: false 

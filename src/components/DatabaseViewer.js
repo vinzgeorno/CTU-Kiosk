@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import database from '../utils/indexedDatabase';
-import { FaSearch, FaDownload, FaEye, FaCalendarAlt, FaChartBar, FaCloud } from 'react-icons/fa';
+import supabaseSync from '../utils/supabaseSync';
+import { FaSearch, FaDownload, FaEye, FaCalendarAlt, FaChartBar, FaCloud, FaSync, FaCloudUploadAlt, FaExclamationTriangle } from 'react-icons/fa';
 import './DatabaseViewer.css';
 
 function DatabaseViewer() {
@@ -17,11 +18,14 @@ function DatabaseViewer() {
   const [stats, setStats] = useState(null);
   const [currentPage] = useState(1);
   const ticketsPerPage = 20;
+  const [filterSyncStatus, setFilterSyncStatus] = useState('all'); // 'all', 'synced', 'unsynced'
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
 
   useEffect(() => {
     loadTickets();
     loadStats();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterSyncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTickets = async () => {
     setLoading(true);
@@ -32,7 +36,16 @@ function DatabaseViewer() {
       const result = await database.getAllTickets(ticketsPerPage, offset);
       
       if (result.success) {
-        setTickets(result.tickets);
+        let filteredTickets = result.tickets;
+        
+        // Apply sync status filter
+        if (filterSyncStatus === 'synced') {
+          filteredTickets = filteredTickets.filter(t => t.synced_to_cloud);
+        } else if (filterSyncStatus === 'unsynced') {
+          filteredTickets = filteredTickets.filter(t => !t.synced_to_cloud);
+        }
+        
+        setTickets(filteredTickets);
       }
     } catch (error) {
       console.error('Error loading tickets:', error);
@@ -88,6 +101,77 @@ function DatabaseViewer() {
       console.error('Error filtering by date:', error);
     }
     setLoading(false);
+  };
+
+  const syncUnsyncedTickets = async () => {
+    if (isSyncing) return;
+    
+    setIsSyncing(true);
+    setSyncMessage('Checking connection...');
+    
+    try {
+      // Check if Supabase is configured
+      const config = localStorage.getItem('supabase_config');
+      if (!config) {
+        setSyncMessage('Supabase not configured. Please configure in Sync Manager.');
+        setTimeout(() => setSyncMessage(''), 5000);
+        setIsSyncing(false);
+        return;
+      }
+
+      // Initialize if needed
+      const savedConfig = JSON.parse(config);
+      if (!supabaseSync.isConfigured) {
+        supabaseSync.initialize(savedConfig.url, savedConfig.key);
+      }
+
+      setSyncMessage('Starting sync...');
+      const result = await supabaseSync.syncAllTickets((progress) => {
+        setSyncMessage(`Syncing: ${progress.current}/${progress.total} tickets`);
+      });
+
+      if (result.success) {
+        setSyncMessage(`✓ Synced ${result.synced} tickets successfully!`);
+        loadTickets();
+        loadStats();
+      } else {
+        setSyncMessage(`✗ Sync failed: ${result.error}`);
+      }
+    } catch (error) {
+      setSyncMessage(`Error: ${error.message}`);
+      console.error('Sync error:', error);
+    }
+    
+    setTimeout(() => {
+      setIsSyncing(false);
+      setSyncMessage('');
+    }, 3000);
+  };
+
+  const syncSingleTicket = async (ticket) => {
+    try {
+      const config = localStorage.getItem('supabase_config');
+      if (!config) {
+        alert('Supabase not configured. Please configure in Sync Manager.');
+        return;
+      }
+
+      const savedConfig = JSON.parse(config);
+      if (!supabaseSync.isConfigured) {
+        supabaseSync.initialize(savedConfig.url, savedConfig.key);
+      }
+
+      const result = await supabaseSync.syncTicket(ticket);
+      if (result.success) {
+        await supabaseSync.markTicketAsSynced(ticket.reference_number);
+        loadTickets();
+        alert('Ticket synced successfully!');
+      } else {
+        alert(`Sync failed: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    }
   };
 
   const exportData = async () => {
@@ -226,8 +310,47 @@ function DatabaseViewer() {
         </div>
       )}
 
+      {/* Sync Status Alert */}
+      {syncMessage && (
+        <div className={`sync-message ${isSyncing ? 'syncing' : 'success'}`}>
+          <FaCloudUploadAlt /> {syncMessage}
+        </div>
+      )}
+
       {/* Search and Filter Section */}
       <div className="search-section">
+        {/* Sync Status Filter */}
+        <div className="sync-status-filter">
+          <label>Sync Status:</label>
+          <button 
+            className={`filter-btn ${filterSyncStatus === 'all' ? 'active' : ''}`}
+            onClick={() => setFilterSyncStatus('all')}
+          >
+            All Tickets
+          </button>
+          <button 
+            className={`filter-btn ${filterSyncStatus === 'synced' ? 'active' : ''}`}
+            onClick={() => setFilterSyncStatus('synced')}
+          >
+            <FaCloud /> Synced
+          </button>
+          <button 
+            className={`filter-btn warning ${filterSyncStatus === 'unsynced' ? 'active' : ''}`}
+            onClick={() => setFilterSyncStatus('unsynced')}
+          >
+            <FaExclamationTriangle /> Unsynced
+          </button>
+          {filterSyncStatus === 'unsynced' && tickets.length > 0 && (
+            <button 
+              className={'sync-now-btn'}
+              onClick={syncUnsyncedTickets}
+              disabled={isSyncing}
+            >
+              <FaSync /> {isSyncing ? 'Syncing...' : 'Sync Now'}
+            </button>
+          )}
+        </div>
+
         <div className="search-controls">
           <div className="search-input-group">
             <input
@@ -268,7 +391,7 @@ function DatabaseViewer() {
 
       {/* Tickets Table */}
       <div className="tickets-section">
-        <h2>Recent Tickets</h2>
+        <h2>Transactions ({tickets.length} {filterSyncStatus === 'unsynced' ? 'unsynced' : filterSyncStatus === 'synced' ? 'synced' : 'total'})</h2>
         {loading ? (
           <div className="loading">Loading tickets...</div>
         ) : (
@@ -277,35 +400,50 @@ function DatabaseViewer() {
               <thead>
                 <tr>
                   <th>Reference #</th>
-                  <th>Name</th>
+                  <th>Age</th>
                   <th>Facility</th>
                   <th>Amount</th>
                   <th>Date Created</th>
-                  <th>Status</th>
+                  <th>Sync Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {tickets.map((ticket, index) => (
-                  <tr key={index}>
+                  <tr key={index} className={ticket.synced_to_cloud ? 'synced-row' : 'unsynced-row'}>
                     <td>{ticket.reference_number}</td>
-                    <td>{ticket.name}</td>
+                    <td>{ticket.age || '-'}</td>
                     <td>{ticket.facility}</td>
-                    <td>{formatCurrency(ticket.payment_amount)}</td>
-                    <td>{formatDate(ticket.date_created)}</td>
+                    <td>{formatCurrency(ticket.amount_paid)}</td>
+                    <td>{formatDate(ticket.created_at)}</td>
                     <td>
-                      <span className={`status ${ticket.transaction_status}`}>
-                        {ticket.transaction_status}
+                      <span className={`sync-status ${ticket.synced_to_cloud ? 'synced' : 'unsynced'}`}>
+                        {ticket.synced_to_cloud ? (
+                          <><FaCloud /> Synced</>
+                        ) : (
+                          <><FaExclamationTriangle /> Unsynced</>
+                        )}
                       </span>
                     </td>
                     <td>
-                      <button 
-                        onClick={() => viewTicketDetails(ticket)} 
-                        className="view-btn"
-                        title="View Details"
-                      >
-                        <FaEye />
-                      </button>
+                      <div className="action-buttons">
+                        <button 
+                          onClick={() => viewTicketDetails(ticket)} 
+                          className="view-btn"
+                          title="View Details"
+                        >
+                          <FaEye />
+                        </button>
+                        {!ticket.synced_to_cloud && (
+                          <button 
+                            onClick={() => syncSingleTicket(ticket)} 
+                            className="sync-btn"
+                            title="Sync now"
+                          >
+                            <FaSync />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -313,7 +451,7 @@ function DatabaseViewer() {
             </table>
 
             {tickets.length === 0 && !loading && (
-              <div className="no-tickets">No tickets found</div>
+              <div className="no-tickets">No tickets found for the selected filter</div>
             )}
           </div>
         )}
@@ -324,7 +462,7 @@ function DatabaseViewer() {
         <div className="modal-overlay" onClick={closeTicketDetails}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Ticket Details</h2>
+              <h2>Transaction Details</h2>
               <button onClick={closeTicketDetails} className="close-btn">&times;</button>
             </div>
             
@@ -332,10 +470,6 @@ function DatabaseViewer() {
               <div className="detail-row">
                 <label>Reference Number:</label>
                 <span>{selectedTicket.reference_number}</span>
-              </div>
-              <div className="detail-row">
-                <label>Name:</label>
-                <span>{selectedTicket.name}</span>
               </div>
               <div className="detail-row">
                 <label>Age:</label>
@@ -346,52 +480,34 @@ function DatabaseViewer() {
                 <span>{selectedTicket.facility}</span>
               </div>
               <div className="detail-row">
-                <label>Payment Amount:</label>
-                <span>{formatCurrency(selectedTicket.payment_amount)}</span>
-              </div>
-              <div className="detail-row">
-                <label>Original Price:</label>
-                <span>{formatCurrency(selectedTicket.original_price)}</span>
-              </div>
-              <div className="detail-row">
-                <label>Has Discount:</label>
-                <span>{selectedTicket.has_discount ? 'Yes' : 'No'}</span>
-              </div>
-              <div className="detail-row">
-                <label>Payment Method:</label>
-                <span>{selectedTicket.method_type || 'Cash'}</span>
-              </div>
-              <div className="detail-row">
-                <label>Amount Inserted:</label>
-                <span>{formatCurrency(selectedTicket.amount_inserted || selectedTicket.payment_amount)}</span>
-              </div>
-              <div className="detail-row">
-                <label>Change Given:</label>
-                <span>{formatCurrency(selectedTicket.change_given || 0)}</span>
+                <label>Amount Paid:</label>
+                <span>{formatCurrency(selectedTicket.amount_paid)}</span>
               </div>
               <div className="detail-row">
                 <label>Date Created:</label>
-                <span>{formatDate(selectedTicket.date_created)}</span>
+                <span>{formatDate(selectedTicket.created_at)}</span>
               </div>
               <div className="detail-row">
-                <label>Date Expiry:</label>
-                <span>{formatDate(selectedTicket.date_expiry)}</span>
-              </div>
-              <div className="detail-row">
-                <label>Status:</label>
-                <span className={`status ${selectedTicket.transaction_status}`}>
-                  {selectedTicket.transaction_status}
+                <label>Sync Status:</label>
+                <span className={`sync-status ${selectedTicket.synced_to_cloud ? 'synced' : 'unsynced'}`}>
+                  {selectedTicket.synced_to_cloud ? (
+                    <><FaCloud /> Synced at {formatDate(selectedTicket.synced_at)}</>
+                  ) : (
+                    <><FaExclamationTriangle /> Not synced</>
+                  )}
                 </span>
               </div>
-              
-              {selectedTicket.captured_image && (
-                <div className="detail-row">
-                  <label>Captured Image:</label>
-                  <img 
-                    src={selectedTicket.captured_image} 
-                    alt="Visitor" 
-                    className="ticket-image"
-                  />
+              {!selectedTicket.synced_to_cloud && (
+                <div className="detail-actions">
+                  <button 
+                    onClick={() => {
+                      syncSingleTicket(selectedTicket);
+                      closeTicketDetails();
+                    }} 
+                    className="sync-now-modal-btn"
+                  >
+                    <FaSync /> Sync This Transaction
+                  </button>
                 </div>
               )}
             </div>
