@@ -122,10 +122,9 @@ class Database {
         const facilities = [
           { name: 'Oval', price: 20, description: 'Running track and field area' },
           { name: 'Basketball Gym/Kadasig Gym', price: 20, description: 'Indoor basketball court' },
-          { name: 'Badminton Court', price: 20, description: 'Indoor badminton facility' },
-          { name: 'Tennis Court', price: 20, description: 'Outdoor tennis court' },
+          { name: 'Badmintonnis Court', price: 20, description: 'Badminton and tennis court' },
           { name: 'Swimming Pool', price: 100, description: 'Olympic-size swimming pool' },
-          { name: 'Fitness Gym', price: 50, description: 'Weight training and cardio equipment' }
+          { name: 'Water Essence', price: 15, description: 'Water dispensing station' }
         ];
 
         const insertQuery = `

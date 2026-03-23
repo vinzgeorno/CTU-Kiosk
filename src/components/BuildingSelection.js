@@ -1,31 +1,62 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaRunning, FaBasketballBall, FaTableTennis, FaSwimmer, FaDumbbell, FaVolleyballBall } from 'react-icons/fa';
+import { FaRunning, FaBasketballBall, FaTableTennis, FaSwimmer, FaTint } from 'react-icons/fa';
 import './BuildingSelection.css';
 
 function BuildingSelection({ userData, setUserData }) {
   const navigate = useNavigate();
   const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [showClubMemberOption, setShowClubMemberOption] = useState(false);
+  const [isClubMember, setIsClubMember] = useState(null);
 
   const facilities = [
     { id: 1, name: 'Oval', icon: FaRunning, price: 20, color: '#4CAF50' },
     { id: 2, name: 'Basketball Gym/Kadasig Gym', icon: FaBasketballBall, price: 20, color: '#FF9800' },
-    { id: 3, name: 'Badminton Court', icon: FaVolleyballBall, price: 20, color: '#2196F3' },
-    { id: 4, name: 'Tennis Court', icon: FaTableTennis, price: 20, color: '#9C27B0' },
-    { id: 5, name: 'Swimming Pool', icon: FaSwimmer, price: 100, color: '#00BCD4' },
-    { id: 6, name: 'Fitness Gym', icon: FaDumbbell, price: 50, color: '#E91E63' }
+    { id: 3, name: 'Badmintonnis Court', icon: FaTableTennis, price: 20, color: '#2196F3', hasClubOption: true },
+    { id: 4, name: 'Swimming Pool', icon: FaSwimmer, price: 100, color: '#00BCD4' },
+    { id: 5, name: 'Water Essence', icon: FaTint, price: 15, color: '#1E90FF', noDiscount: true }
   ];
 
   const handleBuildingSelect = (building) => {
     setSelectedBuilding(building);
+    setIsClubMember(null); // Reset club member selection
+    
+    // Show club member option only for Badmintonnis Court
+    if (building.hasClubOption) {
+      setShowClubMemberOption(true);
+    } else {
+      setShowClubMemberOption(false);
+    }
+  };
+
+  const handleClubMemberSelection = (isClub) => {
+    setIsClubMember(isClub);
   };
 
   const proceedToPayment = () => {
     if (selectedBuilding) {
-      // Calculate price with age discount
+      // For Badmintonnis Court, club member option is required
+      if (selectedBuilding.hasClubOption && isClubMember === null) {
+        alert('Please select whether you are a club member or not');
+        return;
+      }
+
+      // Calculate price
       let finalPrice = selectedBuilding.price;
-      if (userData.age && userData.age < 12) {
-        finalPrice = selectedBuilding.price * 0.5; // 50% discount for under 12
+      let hasDiscount = false;
+      let clubMemberDiscount = false;
+
+      // Water Essence has no age discount
+      if (selectedBuilding.noDiscount) {
+        finalPrice = selectedBuilding.price; // Always 15
+      } else if (selectedBuilding.hasClubOption && isClubMember) {
+        // Badmintonnis Court: club member gets 50% off
+        finalPrice = selectedBuilding.price * 0.5;
+        clubMemberDiscount = true;
+      } else if (!selectedBuilding.hasClubOption && userData.age && userData.age < 12) {
+        // Other facilities: age discount for under 12
+        finalPrice = selectedBuilding.price * 0.5;
+        hasDiscount = true;
       }
       
       setUserData({
@@ -33,7 +64,9 @@ function BuildingSelection({ userData, setUserData }) {
         selectedBuilding: selectedBuilding,
         ticketPrice: finalPrice,
         originalPrice: selectedBuilding.price,
-        hasDiscount: userData.age && userData.age < 12
+        hasDiscount: hasDiscount,
+        clubMemberDiscount: clubMemberDiscount,
+        isClubMember: isClubMember
       });
       navigate('/payment');
     }
@@ -75,10 +108,27 @@ function BuildingSelection({ userData, setUserData }) {
               <span className="info-value price">
                 {selectedBuilding ? (
                   <>
-                    {userData.age && userData.age < 12 ? (
-                      <>{(selectedBuilding.price * 0.5).toFixed(2)} ₱</>
+                    {selectedBuilding.noDiscount ? (
+                      // Water Essence: always 15
+                      <>₱{selectedBuilding.price.toFixed(2)}</>
+                    ) : selectedBuilding.hasClubOption && isClubMember ? (
+                      // Badmintonnis Court with club member: 50% off
+                      <>
+                        <span className="original-price">₱{selectedBuilding.price}.00</span>
+                        <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
+                      </>
+                    ) : selectedBuilding.hasClubOption && isClubMember === false ? (
+                      // Badmintonnis Court without club member: regular price
+                      <>₱{selectedBuilding.price.toFixed(2)}</>
+                    ) : !selectedBuilding.hasClubOption && userData.age && userData.age < 12 ? (
+                      // Other facilities with age discount
+                      <>
+                        <span className="original-price">₱{selectedBuilding.price}.00</span>
+                        <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
+                      </>
                     ) : (
-                      <>{selectedBuilding.price.toFixed(2)} ₱</>
+                      // Default price
+                      <>₱{selectedBuilding.price.toFixed(2)}</>
                     )}
                   </>
                 ) : '0.00 ₱'}
@@ -94,8 +144,22 @@ function BuildingSelection({ userData, setUserData }) {
           <div className="buildings-grid">
             {facilities.map((facility) => {
               const Icon = facility.icon;
-              const displayPrice = userData.age && userData.age < 12 ? 
-                (facility.price * 0.5).toFixed(2) : facility.price.toFixed(2);
+              let displayPrice = facility.price.toFixed(2);
+              let showDiscount = false;
+
+              if (facility.noDiscount) {
+                // Water Essence: always 15
+                displayPrice = facility.price.toFixed(2);
+              } else if (facility.hasClubOption && isClubMember) {
+                // Badmintonnis Court with club member: 50% off
+                displayPrice = (facility.price * 0.5).toFixed(2);
+                showDiscount = true;
+              } else if (!facility.hasClubOption && userData.age && userData.age < 12) {
+                // Other facilities with age discount
+                displayPrice = (facility.price * 0.5).toFixed(2);
+                showDiscount = true;
+              }
+
               return (
                 <div
                   key={facility.id}
@@ -106,7 +170,7 @@ function BuildingSelection({ userData, setUserData }) {
                   <Icon className="building-icon" />
                   <h3>{facility.name}</h3>
                   <div className="building-price">
-                    {userData.age && userData.age < 12 ? (
+                    {showDiscount ? (
                       <>
                         <span className="original-price">₱{facility.price}.00</span>
                         <span className="discounted-price">₱{displayPrice}</span>
@@ -119,11 +183,32 @@ function BuildingSelection({ userData, setUserData }) {
               );
             })}
           </div>
+
+          {/* Club Member Option for Badmintonnis Court */}
+          {showClubMemberOption && selectedBuilding?.hasClubOption && (
+            <div className="club-member-option">
+              <h3>Are you a club member?</h3>
+              <div className="club-option-buttons">
+                <button
+                  className={`club-btn ${isClubMember === true ? 'active' : ''}`}
+                  onClick={() => handleClubMemberSelection(true)}
+                >
+                  Yes, Club Member
+                </button>
+                <button
+                  className={`club-btn ${isClubMember === false ? 'active' : ''}`}
+                  onClick={() => handleClubMemberSelection(false)}
+                >
+                  No, Regular User
+                </button>
+              </div>
+            </div>
+          )}
           
           <button
             className="payment-button"
             onClick={proceedToPayment}
-            disabled={!selectedBuilding}
+            disabled={!selectedBuilding || (selectedBuilding?.hasClubOption && isClubMember === null)}
           >
             Proceed to Payment
           </button>

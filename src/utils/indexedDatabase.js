@@ -40,6 +40,7 @@ class IndexedDatabase {
           ticketStore.createIndex('reference_number', 'reference_number', { unique: true });
           ticketStore.createIndex('name', 'name', { unique: false });
           ticketStore.createIndex('facility', 'facility', { unique: false });
+          ticketStore.createIndex('age_category', 'age_category', { unique: false });
           ticketStore.createIndex('date_created', 'date_created', { unique: false });
           ticketStore.createIndex('transaction_status', 'transaction_status', { unique: false });
           ticketStore.createIndex('synced_to_cloud', 'synced_to_cloud', { unique: false });
@@ -76,10 +77,9 @@ class IndexedDatabase {
       const facilities = [
         { name: 'Oval', base_price: 20, description: 'Running track and field area', is_active: true },
         { name: 'Basketball Gym/Kadasig Gym', base_price: 20, description: 'Indoor basketball court', is_active: true },
-        { name: 'Badminton Court', base_price: 20, description: 'Indoor badminton facility', is_active: true },
-        { name: 'Tennis Court', base_price: 20, description: 'Outdoor tennis court', is_active: true },
+        { name: 'Badmintonnis Court', base_price: 20, description: 'Badminton and tennis court', is_active: true },
         { name: 'Swimming Pool', base_price: 100, description: 'Olympic-size swimming pool', is_active: true },
-        { name: 'Fitness Gym', base_price: 50, description: 'Weight training and cardio equipment', is_active: true }
+        { name: 'Water Essence', base_price: 15, description: 'Water dispensing station', is_active: true }
       ];
 
       const transaction = this.db.transaction(['facilities'], 'readwrite');
@@ -120,11 +120,15 @@ class IndexedDatabase {
         amountPaid
       } = ticketData;
 
+      // Determine age category: Kid (< 12) or Adult (>= 12)
+      const ageCategory = age && age < 12 ? 'Kid' : 'Adult';
+
       const ticket = {
         reference_number: referenceNumber,
         age: age || null,
+        age_category: ageCategory,
         facility: facility,
-        amount_paid: amountPaid,
+        payment_amount: amountPaid,
         transaction_status: 'completed',
         synced_to_cloud: false,
         synced_at: null,
