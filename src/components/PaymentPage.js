@@ -7,11 +7,6 @@ import './PaymentPage.css';
 function PaymentPage({ userData, setUserData }) {
   const navigate = useNavigate();
   
-  // ========== PAYMENT SIMULATION MODE ==========
-  // Change to TRUE for testing, FALSE for production
-  const ENABLE_PAYMENT_SIMULATION = true;
-  // ==========================================
-  
   const [insertedAmount, setInsertedAmount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hardwareStatus, setHardwareStatus] = useState(null);
@@ -28,19 +23,10 @@ function PaymentPage({ userData, setUserData }) {
   useEffect(() => {
     console.log('🎯 PaymentPage Mounted');
     
-    // Initialize WebSocket connection for real hardware first
+    // Initialize WebSocket connection for real hardware
     initializeWebSocket();
 
-    // Fallback: Initialize simulator ONLY if WebSocket fails
-    const simulatorTimeout = setTimeout(() => {
-      if (connectionStatus === 'disconnected') {
-        console.log('⚠️ Real hardware unavailable - Starting simulator...');
-        initializeSimulator();
-      }
-    }, 2000); // Wait 2 seconds for real hardware connection
-
     return () => {
-      clearTimeout(simulatorTimeout);
       paymentHardware.stopMonitoring();
       if (ws) {
         ws.close();
@@ -48,29 +34,6 @@ function PaymentPage({ userData, setUserData }) {
       console.log('🎯 PaymentPage Unmounted');
     };
   }, []);
-
-  /**
-   * Initialize simulator fallback (only if real hardware unavailable)
-   */
-  const initializeSimulator = () => {
-    paymentHardware.initialize({
-      onCoinDetected: (data) => {
-        console.log('💰 Simulator Coin Detected:', data);
-        setInsertedAmount(prev => prev + data.value);
-        addLog(`[COIN] ✓ ${data.pulses} pulses → ₱${data.value}`);
-      },
-      onBillDetected: (data) => {
-        console.log('💵 Simulator Bill Detected:', data);
-        setInsertedAmount(prev => prev + data.amount);
-        addLog(`[BILL] ✓ ${data.pulses} pulses → ₱${data.amount}`);
-      },
-      onPaymentUpdate: (data) => {
-        setHardwareStatus(data);
-      }
-    });
-
-    paymentHardware.startMonitoring();
-  };
 
   /**
    * Initialize WebSocket connection to backend for real-time pulse updates
@@ -132,7 +95,7 @@ function PaymentPage({ userData, setUserData }) {
       newWs.onclose = () => {
         console.log('🔌 [WebSocket] Disconnected from backend');
         setConnectionStatus('disconnected');
-        addLog('🔌 Connection closed - simulator mode');
+        addLog('🔌 Connection closed');
       };
 
       setWs(newWs);
@@ -303,16 +266,6 @@ function PaymentPage({ userData, setUserData }) {
                       'Confirm Payment'
                     )}
                   </button>
-
-                  {ENABLE_PAYMENT_SIMULATION && (
-                    <button
-                      className="simulation-button"
-                      onClick={() => setInsertedAmount(userData.ticketPrice)}
-                      disabled={isProcessing}
-                    >
-                      [TEST] Insert Full Amount
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
