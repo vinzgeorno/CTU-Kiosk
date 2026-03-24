@@ -53,8 +53,8 @@
 }
 
 .info-label {
-  color: #666;
-  font-size: 11px;
+  color: #333;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -62,7 +62,7 @@
 
 .info-value {
   color: #333;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   word-break: break-all;
 }
@@ -70,6 +70,31 @@
 .info-value.price {
   color: #4CAF50;
   font-size: 18px;
+}
+
+.bulk-price-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.price-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.price-line.total {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .ticket-preview {
@@ -95,7 +120,7 @@
 
 .ticket-header h2 {
   margin: 0 0 3px 0;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -192,14 +217,15 @@
 .section-title {
   color: #333;
   margin: 0 0 3px 0;
-  font-size: 17px;
+  font-size: 32px;
   font-weight: 700;
 }
 
 .section-subtitle {
   color: #666;
   margin-bottom: 10px;
-  font-size: 10px;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 .buildings-grid {
@@ -293,6 +319,26 @@
   font-weight: normal;
 }
 
+.bulk-price-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.price-per-unit {
+  font-size: 10px;
+  color: #666;
+  font-weight: 500;
+}
+
+.total-price {
+  font-size: 12px;
+  color: var(--building-color);
+  font-weight: bold;
+}
+
 .payment-button {
   width: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -315,6 +361,74 @@
 .payment-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.building-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.building-controls .payment-button {
+  width: auto;
+  flex: 1;
+  margin-top: 0;
+}
+
+.back-button {
+  flex: 0.3;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.back-button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.building-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.back-button {
+  flex: 0.3;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.back-button:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 700px) {

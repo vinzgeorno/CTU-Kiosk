@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaRunning, FaBasketballBall, FaTableTennis, FaSwimmer, FaTint } from 'react-icons/fa';
+import { FaRunning, FaBasketballBall, FaTableTennis, FaSwimmer, FaTint, FaArrowLeft } from 'react-icons/fa';
 import './BuildingSelection.css';
 
 function BuildingSelection({ userData, setUserData }) {
@@ -12,7 +12,7 @@ function BuildingSelection({ userData, setUserData }) {
   const facilities = [
     { id: 1, name: 'Oval', icon: FaRunning, price: 20, color: '#4CAF50' },
     { id: 2, name: 'Basketball Gym/Kadasig Gym', icon: FaBasketballBall, price: 20, color: '#FF9800' },
-    { id: 3, name: 'Badmintonnis Court', icon: FaTableTennis, price: 20, color: '#2196F3', hasClubOption: true },
+    { id: 3, name: 'Badminton/Tennis Court', icon: FaTableTennis, price: 20, color: '#2196F3', hasClubOption: true },
     { id: 4, name: 'Swimming Pool', icon: FaSwimmer, price: 100, color: '#00BCD4' },
     { id: 5, name: 'Water Essence', icon: FaTint, price: 15, color: '#1E90FF', noDiscount: true }
   ];
@@ -35,41 +35,92 @@ function BuildingSelection({ userData, setUserData }) {
 
   const proceedToPayment = () => {
     if (selectedBuilding) {
-      // For Badmintonnis Court, club member option is required
-      if (selectedBuilding.hasClubOption && isClubMember === null) {
+      // For Badmintonnis Court, club member option is required (only for solo)
+      if (userData.ticketType === 'solo' && selectedBuilding.hasClubOption && isClubMember === null) {
         alert('Please select whether you are a club member or not');
         return;
       }
 
-      // Calculate price
-      let finalPrice = selectedBuilding.price;
-      let hasDiscount = false;
-      let clubMemberDiscount = false;
+      if (userData.ticketType === 'bulk') {
+        // Bulk purchase pricing
+        const bulkPricing = calculateBulkPrice(selectedBuilding);
+        
+        setUserData({
+          ...userData,
+          selectedBuilding: selectedBuilding,
+          ticketPrice: bulkPricing.totalPrice,
+          originalPrice: selectedBuilding.price,
+          hasDiscount: userData.peopleBelow12 > 0 && !selectedBuilding.noDiscount,
+          bulkPricing: bulkPricing
+        });
+      } else {
+        // Solo purchase pricing
+        let finalPrice = selectedBuilding.price;
+        let hasDiscount = false;
+        let clubMemberDiscount = false;
 
-      // Water Essence has no age discount
-      if (selectedBuilding.noDiscount) {
-        finalPrice = selectedBuilding.price; // Always 15
-      } else if (selectedBuilding.hasClubOption && isClubMember) {
-        // Badmintonnis Court: club member gets 50% off
-        finalPrice = selectedBuilding.price * 0.5;
-        clubMemberDiscount = true;
-      } else if (!selectedBuilding.hasClubOption && userData.age && userData.age < 12) {
-        // Other facilities: age discount for under 12
-        finalPrice = selectedBuilding.price * 0.5;
-        hasDiscount = true;
+        // Water Essence has no age discount
+        if (selectedBuilding.noDiscount) {
+          finalPrice = selectedBuilding.price;
+        } else if (selectedBuilding.hasClubOption && isClubMember) {
+          // Badmintonnis Court: club member gets 50% off
+          finalPrice = selectedBuilding.price * 0.5;
+          clubMemberDiscount = true;
+        } else if (!selectedBuilding.hasClubOption && userData.age && userData.age < 12) {
+          // Other facilities: age discount for under 12
+          finalPrice = selectedBuilding.price * 0.5;
+          hasDiscount = true;
+        }
+        
+        setUserData({
+          ...userData,
+          selectedBuilding: selectedBuilding,
+          ticketPrice: finalPrice,
+          originalPrice: selectedBuilding.price,
+          hasDiscount: hasDiscount,
+          clubMemberDiscount: clubMemberDiscount,
+          isClubMember: isClubMember
+        });
       }
       
-      setUserData({
-        ...userData,
-        selectedBuilding: selectedBuilding,
-        ticketPrice: finalPrice,
-        originalPrice: selectedBuilding.price,
-        hasDiscount: hasDiscount,
-        clubMemberDiscount: clubMemberDiscount,
-        isClubMember: isClubMember
-      });
       navigate('/payment');
     }
+  };
+
+  const handleBack = () => {
+    if (userData.ticketType === 'bulk') {
+      navigate('/ticket-type');
+    } else {
+      navigate('/age-selection');
+    }
+  };
+
+  const calculateBulkPrice = (building) => {
+    if (userData.ticketType !== 'bulk') return null;
+
+    let totalPrice = 0;
+    let priceBelow12 = 0;
+    let price12Above = 0;
+
+    if (building.noDiscount) {
+      // Water Essence: no discount for anyone
+      totalPrice = building.price * userData.totalPeople;
+      priceBelow12 = building.price * userData.peopleBelow12;
+      price12Above = building.price * userData.people12Above;
+    } else {
+      // Other facilities: below 12 gets 50% off
+      priceBelow12 = (building.price * 0.5) * userData.peopleBelow12;
+      price12Above = building.price * userData.people12Above;
+      totalPrice = priceBelow12 + price12Above;
+    }
+
+    return {
+      totalPrice,
+      priceBelow12,
+      price12Above,
+      pricePerPersonBelow12: building.noDiscount ? building.price : building.price * 0.5,
+      pricePerPersonAbove12: building.price
+    };
   };
 
   const formatDate = () => {
@@ -95,42 +146,87 @@ function BuildingSelection({ userData, setUserData }) {
       <div className="selection-container">
         <div className="info-sidebar">
           <div className="info-box">
-            <div className="info-section">
-              <span className="info-label">Age:</span>
-              <span className="info-value">{userData.age || '-'}</span>
-            </div>
+            {userData.ticketType === 'bulk' ? (
+              <>
+                <div className="info-section">
+                  <span className="info-label">Ticket Type:</span>
+                  <span className="info-value">Bulk Purchase</span>
+                </div>
+                <div className="info-section">
+                  <span className="info-label">Total People:</span>
+                  <span className="info-value">{userData.totalPeople}</span>
+                </div>
+                <div className="info-section">
+                  <span className="info-label">Below 12:</span>
+                  <span className="info-value">{userData.peopleBelow12}</span>
+                </div>
+                <div className="info-section">
+                  <span className="info-label">12 & Above:</span>
+                  <span className="info-value">{userData.people12Above}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="info-section">
+                  <span className="info-label">Category:</span>
+                  <span className="info-value">{userData.ageGroup || '-'}</span>
+                </div>
+                <div className="info-section">
+                  <span className="info-label">Ticket #:</span>
+                  <span className="info-value">{userData.transactionId || '-'}</span>
+                </div>
+              </>
+            )}
             <div className="info-section">
               <span className="info-label">Ticket #:</span>
-              <span className="info-value">TKT-{Date.now().toString().slice(-8)}</span>
+              <span className="info-value">{userData.transactionId || '-'}</span>
             </div>
             <div className="info-section">
               <span className="info-label">Price:</span>
               <span className="info-value price">
                 {selectedBuilding ? (
-                  <>
-                    {selectedBuilding.noDiscount ? (
-                      // Water Essence: always 15
-                      <>₱{selectedBuilding.price.toFixed(2)}</>
-                    ) : selectedBuilding.hasClubOption && isClubMember ? (
-                      // Badmintonnis Court with club member: 50% off
-                      <>
-                        <span className="original-price">₱{selectedBuilding.price}.00</span>
-                        <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
-                      </>
-                    ) : selectedBuilding.hasClubOption && isClubMember === false ? (
-                      // Badmintonnis Court without club member: regular price
-                      <>₱{selectedBuilding.price.toFixed(2)}</>
-                    ) : !selectedBuilding.hasClubOption && userData.age && userData.age < 12 ? (
-                      // Other facilities with age discount
-                      <>
-                        <span className="original-price">₱{selectedBuilding.price}.00</span>
-                        <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
-                      </>
-                    ) : (
-                      // Default price
-                      <>₱{selectedBuilding.price.toFixed(2)}</>
-                    )}
-                  </>
+                  userData.ticketType === 'bulk' ? (
+                    <>
+                      <div className="bulk-price-breakdown">
+                        {userData.peopleBelow12 > 0 && (
+                          <div className="price-line">
+                            <span>{userData.peopleBelow12}x₱{calculateBulkPrice(selectedBuilding).pricePerPersonBelow12.toFixed(2)}</span>
+                            <span>₱{calculateBulkPrice(selectedBuilding).priceBelow12.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {userData.people12Above > 0 && (
+                          <div className="price-line">
+                            <span>{userData.people12Above}x₱{calculateBulkPrice(selectedBuilding).pricePerPersonAbove12.toFixed(2)}</span>
+                            <span>₱{calculateBulkPrice(selectedBuilding).price12Above.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="price-line total">
+                          <span>Total:</span>
+                          <span>₱{calculateBulkPrice(selectedBuilding).totalPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {selectedBuilding.noDiscount ? (
+                        <>₱{selectedBuilding.price.toFixed(2)}</>
+                      ) : selectedBuilding.hasClubOption && isClubMember ? (
+                        <>
+                          <span className="original-price">₱{selectedBuilding.price}.00</span>
+                          <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
+                        </>
+                      ) : selectedBuilding.hasClubOption && isClubMember === false ? (
+                        <>₱{selectedBuilding.price.toFixed(2)}</>
+                      ) : !selectedBuilding.hasClubOption && userData.age && userData.age < 12 ? (
+                        <>
+                          <span className="original-price">₱{selectedBuilding.price}.00</span>
+                          <span className="discounted-price">₱{(selectedBuilding.price * 0.5).toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <>₱{selectedBuilding.price.toFixed(2)}</>
+                      )}
+                    </>
+                  )
                 ) : '0.00 ₱'}
               </span>
             </div>
@@ -146,18 +242,23 @@ function BuildingSelection({ userData, setUserData }) {
               const Icon = facility.icon;
               let displayPrice = facility.price.toFixed(2);
               let showDiscount = false;
+              let bulkDisplayPrice = null;
 
-              if (facility.noDiscount) {
-                // Water Essence: always 15
-                displayPrice = facility.price.toFixed(2);
-              } else if (facility.hasClubOption && isClubMember) {
-                // Badmintonnis Court with club member: 50% off
-                displayPrice = (facility.price * 0.5).toFixed(2);
-                showDiscount = true;
-              } else if (!facility.hasClubOption && userData.age && userData.age < 12) {
-                // Other facilities with age discount
-                displayPrice = (facility.price * 0.5).toFixed(2);
-                showDiscount = true;
+              if (userData.ticketType === 'bulk') {
+                // For bulk, calculate and display total price
+                const bulkPricing = calculateBulkPrice(facility);
+                bulkDisplayPrice = bulkPricing.totalPrice.toFixed(2);
+              } else {
+                // For solo, use existing logic
+                if (facility.noDiscount) {
+                  displayPrice = facility.price.toFixed(2);
+                } else if (facility.hasClubOption && isClubMember) {
+                  displayPrice = (facility.price * 0.5).toFixed(2);
+                  showDiscount = true;
+                } else if (!facility.hasClubOption && userData.age && userData.age < 12) {
+                  displayPrice = (facility.price * 0.5).toFixed(2);
+                  showDiscount = true;
+                }
               }
 
               return (
@@ -170,13 +271,22 @@ function BuildingSelection({ userData, setUserData }) {
                   <Icon className="building-icon" />
                   <h3>{facility.name}</h3>
                   <div className="building-price">
-                    {showDiscount ? (
-                      <>
-                        <span className="original-price">₱{facility.price}.00</span>
-                        <span className="discounted-price">₱{displayPrice}</span>
-                      </>
+                    {userData.ticketType === 'bulk' ? (
+                      <div className="bulk-price-display">
+                        <div className="price-per-unit">₱{facility.price}.00/person</div>
+                        <div className="total-price">₱{bulkDisplayPrice} total</div>
+                      </div>
                     ) : (
-                      `₱${facility.price}.00`
+                      <>
+                        {showDiscount ? (
+                          <>
+                            <span className="original-price">₱{facility.price}.00</span>
+                            <span className="discounted-price">₱{displayPrice}</span>
+                          </>
+                        ) : (
+                          `₱${facility.price}.00`
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -205,13 +315,18 @@ function BuildingSelection({ userData, setUserData }) {
             </div>
           )}
           
-          <button
-            className="payment-button"
-            onClick={proceedToPayment}
-            disabled={!selectedBuilding || (selectedBuilding?.hasClubOption && isClubMember === null)}
-          >
-            Proceed to Payment
-          </button>
+          <div className="building-controls">
+            <button onClick={handleBack} className="back-button">
+              <FaArrowLeft /> Back
+            </button>
+            <button
+              className="payment-button"
+              onClick={proceedToPayment}
+              disabled={!selectedBuilding || (selectedBuilding?.hasClubOption && isClubMember === null)}
+            >
+              Proceed to Payment
+            </button>
+          </div>
         </div>
       </div>
     </div>

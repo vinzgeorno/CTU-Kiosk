@@ -55,9 +55,13 @@ function TicketComplete({ userData, setUserData }) {
     try {
       const ticketData = {
         referenceNumber: userData.transactionId,
-        age: userData.age,
+        age: userData.age || null,
         facility: userData.selectedBuilding?.name,
-        amountPaid: userData.ticketPrice
+        amountPaid: userData.ticketPrice,
+        ticketType: userData.ticketType || 'solo',
+        totalPeople: userData.totalPeople || 1,
+        peopleBelow12: userData.peopleBelow12 || 0,
+        people12Above: userData.people12Above || 0
       };
 
       const result = await database.insertTicket(ticketData);
@@ -172,9 +176,14 @@ function TicketComplete({ userData, setUserData }) {
     setUserData({
       name: '',
       age: null,
+      ageGroup: null,
       selectedBuilding: null,
       ticketPrice: 0,
-      transactionId: null
+      transactionId: null,
+      ticketType: null,
+      totalPeople: null,
+      peopleBelow12: null,
+      people12Above: null
     });
     navigate('/');
   };
@@ -189,7 +198,11 @@ function TicketComplete({ userData, setUserData }) {
         ticketNumber: userData.transactionId,
         discountPrice: userData.ticketPrice,
         originalPrice: userData.originalPrice || userData.ticketPrice,
-        hasDiscount: userData.hasDiscount || false
+        hasDiscount: userData.hasDiscount || false,
+        ticketType: userData.ticketType,
+        totalPeople: userData.totalPeople,
+        peopleBelow12: userData.peopleBelow12,
+        people12Above: userData.people12Above
       });
 
       // Send ticket data to backend instead of image
@@ -205,7 +218,11 @@ function TicketComplete({ userData, setUserData }) {
           originalPrice: userData.originalPrice || userData.ticketPrice,
           discountPrice: userData.ticketPrice,
           hasDiscount: userData.hasDiscount || false,
-          transactionId: userData.transactionId
+          transactionId: userData.transactionId,
+          ticketType: userData.ticketType,
+          totalPeople: userData.totalPeople,
+          peopleBelow12: userData.peopleBelow12,
+          people12Above: userData.people12Above
         })
       });
       
@@ -259,6 +276,22 @@ function TicketComplete({ userData, setUserData }) {
                       <span className="detail-label">Valid Until</span>
                       <span className="detail-value">{getValidUntil()}</span>
                     </div>
+                    {userData.ticketType === 'bulk' && (
+                      <>
+                        <div className="detail-item">
+                          <span className="detail-label">Total People</span>
+                          <span className="detail-value">{userData.totalPeople}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Below 12</span>
+                          <span className="detail-value">{userData.peopleBelow12}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">12 & Above</span>
+                          <span className="detail-value">{userData.people12Above}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -266,11 +299,11 @@ function TicketComplete({ userData, setUserData }) {
                   <div className="building-access">
                     <h3>Building Access</h3>
                     <div className="building-name">{userData.selectedBuilding?.name}</div>
-                    <div className="access-level">VISITOR ACCESS</div>
+                    <div className="access-level">{userData.ticketType === 'bulk' ? 'BULK VISITOR ACCESS' : 'VISITOR ACCESS'}</div>
                   </div>
                   <div className="price-info">
                     <span className="price-label">Amount Paid</span>
-                    <span className="price-value">₱{userData.ticketPrice}.00</span>
+                    <span className="price-value">₱{userData.ticketPrice.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -302,23 +335,6 @@ function TicketComplete({ userData, setUserData }) {
           </div>
 
           <div className="action-buttons">
-            <button 
-              onClick={printTicket} 
-              className="print-button"
-              disabled={isPrinting}
-            >
-              {isPrinting ? (
-                <>
-                  <div className="spinner-small"></div>
-                  Printing...
-                </>
-              ) : (
-                <>
-                  <FaPrint /> Print Ticket
-                </>
-              )}
-            </button>
-            
             <button onClick={startNewTransaction} className="new-transaction-button">
               <FaHome /> Start New Transaction
             </button>

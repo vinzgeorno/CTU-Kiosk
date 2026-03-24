@@ -1,20 +1,24 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlay } from 'react-icons/fa';
+import campusLogo from '../images/campus_logo.png';
 import './LandingPage.css';
 
 function LandingPage({ userData, setUserData }) {
   const navigate = useNavigate();
 
   const handleStart = () => {
-    navigate('/age-selection');
+    navigate('/ticket-type');
   };
 
   return (
     <div className="landing-page fade-in">
       <div className="landing-container">
         <div className="welcome-content">
-          <h1 className="welcome-title">Welcome to Cebu Technological University - Danao Campus Ticket Machine</h1>
+          <div className="title-with-logo">
+            <img src={campusLogo} alt="CTU Campus Logo" className="campus-logo" />
+            <h1 className="welcome-title">Welcome to Cebu Technological University - Danao Campus Ticket Machine</h1>
+          </div>
           
           <p className="terms-agreement">By using this machine, you agree to the Terms and Conditions</p>
 

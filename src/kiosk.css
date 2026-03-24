@@ -53,6 +53,10 @@ button, a, input, select, textarea, .choice-card, .facility-card, .method-card, 
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('./images/campus.jpg');
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
 }
 
 /* Prevent zoom on mobile devices */

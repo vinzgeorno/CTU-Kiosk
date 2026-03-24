@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
+import TicketTypeSelection from './components/TicketTypeSelection';
 import AgeSelection from './components/AgeSelection';
 import BuildingSelection from './components/BuildingSelection';
 import PaymentPage from './components/PaymentPage';
@@ -25,6 +26,7 @@ function App() {
       <div className="App kiosk-mode">
         <Routes>
           <Route path="/" element={<LandingPage userData={userData} setUserData={setUserData} />} />
+          <Route path="/ticket-type" element={<TicketTypeSelection userData={userData} setUserData={setUserData} />} />
           <Route path="/age-selection" element={<AgeSelection userData={userData} setUserData={setUserData} />} />
           <Route path="/building-selection" element={<BuildingSelection userData={userData} setUserData={setUserData} />} />
           <Route path="/payment" element={<PaymentPage userData={userData} setUserData={setUserData} />} />

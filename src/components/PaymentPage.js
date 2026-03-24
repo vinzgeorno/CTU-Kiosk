@@ -6,6 +6,12 @@ import './PaymentPage.css';
 
 function PaymentPage({ userData, setUserData }) {
   const navigate = useNavigate();
+  
+  // ========== PAYMENT SIMULATION MODE ==========
+  // Change to TRUE for testing, FALSE for production
+  const ENABLE_PAYMENT_SIMULATION = true;
+  // ==========================================
+  
   const [insertedAmount, setInsertedAmount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hardwareStatus, setHardwareStatus] = useState(null);
@@ -197,8 +203,8 @@ function PaymentPage({ userData, setUserData }) {
       // Calculate change
       const changeAmount = insertedAmount - userData.ticketPrice;
       
-      // Create transaction ID
-      const transactionId = 'TKT-' + Date.now();
+      // Use existing transaction ID from userData (created in AgeSelection)
+      const transactionId = userData.transactionId;
       
       console.log('🎫 Processing Payment:', {
         transactionId,
@@ -229,7 +235,6 @@ function PaymentPage({ userData, setUserData }) {
       // Update user data with payment information
       setUserData({
         ...userData,
-        transactionId: transactionId,
         paymentMethod: 'mixed', // Both coin and bill accepted
         amountInserted: insertedAmount,
         changeGiven: changeAmount
@@ -283,20 +288,32 @@ function PaymentPage({ userData, setUserData }) {
                   )}
                 </div>
 
-                <button
-                  className="confirm-payment-button"
-                  onClick={processPayment}
-                  disabled={insertedAmount < userData.ticketPrice || isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="processing-spinner"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    'Confirm Payment'
+                <div className="payment-buttons">
+                  <button
+                    className="confirm-payment-button"
+                    onClick={processPayment}
+                    disabled={insertedAmount < userData.ticketPrice || isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="processing-spinner"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      'Confirm Payment'
+                    )}
+                  </button>
+
+                  {ENABLE_PAYMENT_SIMULATION && (
+                    <button
+                      className="simulation-button"
+                      onClick={() => setInsertedAmount(userData.ticketPrice)}
+                      disabled={isProcessing}
+                    >
+                      [TEST] Insert Full Amount
+                    </button>
                   )}
-                </button>
+                </div>
               </div>
             </div>
 
