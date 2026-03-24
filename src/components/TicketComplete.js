@@ -222,7 +222,8 @@ function TicketComplete({ userData, setUserData }) {
           ticketType: userData.ticketType,
           totalPeople: userData.totalPeople,
           peopleBelow12: userData.peopleBelow12,
-          people12Above: userData.people12Above
+          people12Above: userData.people12Above,
+          changeGiven: userData.changeGiven || 0
         })
       });
       
@@ -305,6 +306,12 @@ function TicketComplete({ userData, setUserData }) {
                     <span className="price-label">Amount Paid</span>
                     <span className="price-value">₱{userData.ticketPrice.toFixed(2)}</span>
                   </div>
+                  {userData.changeGiven > 0 && (
+                    <div className="change-info">
+                      <span className="change-label">Change to Give</span>
+                      <span className="change-value">₱{userData.changeGiven.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="ticket-footer">

@@ -8,24 +8,33 @@ function BuildingSelection({ userData, setUserData }) {
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [showClubMemberOption, setShowClubMemberOption] = useState(false);
   const [isClubMember, setIsClubMember] = useState(null);
+  const [showResidentOption, setShowResidentOption] = useState(false);
+  const [isResident, setIsResident] = useState(null);
 
   const facilities = [
     { id: 1, name: 'Oval', icon: FaRunning, price: 20, color: '#4CAF50' },
     { id: 2, name: 'Basketball Gym/Kadasig Gym', icon: FaBasketballBall, price: 20, color: '#FF9800' },
     { id: 3, name: 'Badminton/Tennis Court', icon: FaTableTennis, price: 20, color: '#2196F3', hasClubOption: true },
     { id: 4, name: 'Swimming Pool', icon: FaSwimmer, price: 100, color: '#00BCD4' },
-    { id: 5, name: 'Water Essence', icon: FaTint, price: 15, color: '#1E90FF', noDiscount: true }
+    { id: 5, name: 'Water Essence', icon: FaTint, residentPrice: 10, nonResidentPrice: 15, color: '#1E90FF', hasResidentOption: true, noDiscount: true }
   ];
 
   const handleBuildingSelect = (building) => {
     setSelectedBuilding(building);
     setIsClubMember(null); // Reset club member selection
+    setIsResident(null); // Reset resident selection
     
-    // Show club member option only for Badmintonnis Court
+    // Show club member option only for Badminton/Tennis Court
     if (building.hasClubOption) {
       setShowClubMemberOption(true);
+      setShowResidentOption(false);
+    } else if (building.hasResidentOption) {
+      // Show resident option for Water Essence
+      setShowResidentOption(true);
+      setShowClubMemberOption(false);
     } else {
       setShowClubMemberOption(false);
+      setShowResidentOption(false);
     }
   };
 
@@ -33,11 +42,21 @@ function BuildingSelection({ userData, setUserData }) {
     setIsClubMember(isClub);
   };
 
+  const handleResidentSelection = (isRes) => {
+    setIsResident(isRes);
+  };
+
   const proceedToPayment = () => {
     if (selectedBuilding) {
-      // For Badmintonnis Court, club member option is required (only for solo)
+      // For Badminton/Tennis Court, club member option is required (only for solo)
       if (userData.ticketType === 'solo' && selectedBuilding.hasClubOption && isClubMember === null) {
         alert('Please select whether you are a club member or not');
+        return;
+      }
+
+      // For Water Essence, resident option is required (only for solo)
+      if (userData.ticketType === 'solo' && selectedBuilding.hasResidentOption && isResident === null) {
+        alert('Please select whether you are a campus resident or not');
         return;
       }
 
@@ -58,12 +77,16 @@ function BuildingSelection({ userData, setUserData }) {
         let finalPrice = selectedBuilding.price;
         let hasDiscount = false;
         let clubMemberDiscount = false;
+        let residentDiscount = false;
 
-        // Water Essence has no age discount
-        if (selectedBuilding.noDiscount) {
+        // Water Essence has resident pricing
+        if (selectedBuilding.hasResidentOption) {
+          finalPrice = isResident ? selectedBuilding.residentPrice : selectedBuilding.nonResidentPrice;
+          residentDiscount = isResident;
+        } else if (selectedBuilding.noDiscount) {
           finalPrice = selectedBuilding.price;
         } else if (selectedBuilding.hasClubOption && isClubMember) {
-          // Badmintonnis Court: club member gets 50% off
+          // Badminton/Tennis Court: club member gets 50% off
           finalPrice = selectedBuilding.price * 0.5;
           clubMemberDiscount = true;
         } else if (!selectedBuilding.hasClubOption && userData.age && userData.age < 12) {
@@ -76,10 +99,12 @@ function BuildingSelection({ userData, setUserData }) {
           ...userData,
           selectedBuilding: selectedBuilding,
           ticketPrice: finalPrice,
-          originalPrice: selectedBuilding.price,
+          originalPrice: selectedBuilding.price || selectedBuilding.nonResidentPrice,
           hasDiscount: hasDiscount,
           clubMemberDiscount: clubMemberDiscount,
-          isClubMember: isClubMember
+          isClubMember: isClubMember,
+          isResident: isResident,
+          residentDiscount: residentDiscount
         });
       }
       
@@ -101,14 +126,21 @@ function BuildingSelection({ userData, setUserData }) {
     let totalPrice = 0;
     let priceBelow12 = 0;
     let price12Above = 0;
+    let pricePerPerson = building.price;
 
-    if (building.noDiscount) {
-      // Water Essence: no discount for anyone
+    if (building.hasResidentOption) {
+      // Water Essence with resident pricing
+      pricePerPerson = isResident ? building.residentPrice : building.nonResidentPrice;
+      totalPrice = pricePerPerson * userData.totalPeople;
+      priceBelow12 = pricePerPerson * userData.peopleBelow12;
+      price12Above = pricePerPerson * userData.people12Above;
+    } else if (building.noDiscount) {
+      // Other no-discount facilities
       totalPrice = building.price * userData.totalPeople;
       priceBelow12 = building.price * userData.peopleBelow12;
       price12Above = building.price * userData.people12Above;
     } else {
-      // Other facilities: below 12 gets 50% off
+      // Facilities with age discount: below 12 gets 50% off
       priceBelow12 = (building.price * 0.5) * userData.peopleBelow12;
       price12Above = building.price * userData.people12Above;
       totalPrice = priceBelow12 + price12Above;
@@ -118,8 +150,8 @@ function BuildingSelection({ userData, setUserData }) {
       totalPrice,
       priceBelow12,
       price12Above,
-      pricePerPersonBelow12: building.noDiscount ? building.price : building.price * 0.5,
-      pricePerPersonAbove12: building.price
+      pricePerPersonBelow12: building.hasResidentOption ? pricePerPerson : (building.noDiscount ? building.price : building.price * 0.5),
+      pricePerPersonAbove12: building.hasResidentOption ? pricePerPerson : building.price
     };
   };
 
@@ -171,10 +203,6 @@ function BuildingSelection({ userData, setUserData }) {
                   <span className="info-label">Category:</span>
                   <span className="info-value">{userData.ageGroup || '-'}</span>
                 </div>
-                <div className="info-section">
-                  <span className="info-label">Ticket #:</span>
-                  <span className="info-value">{userData.transactionId || '-'}</span>
-                </div>
               </>
             )}
             <div className="info-section">
@@ -208,7 +236,17 @@ function BuildingSelection({ userData, setUserData }) {
                     </>
                   ) : (
                     <>
-                      {selectedBuilding.noDiscount ? (
+                      {selectedBuilding.hasResidentOption ? (
+                        isResident !== null ? (
+                          isResident ? (
+                            <>₱{selectedBuilding.residentPrice.toFixed(2)} (Resident)</>
+                          ) : (
+                            <>₱{selectedBuilding.nonResidentPrice.toFixed(2)} (Non-Resident)</>
+                          )
+                        ) : (
+                          <>₱{selectedBuilding.residentPrice} / ₱{selectedBuilding.nonResidentPrice}</>
+                        )
+                      ) : selectedBuilding.noDiscount ? (
                         <>₱{selectedBuilding.price.toFixed(2)}</>
                       ) : selectedBuilding.hasClubOption && isClubMember ? (
                         <>
@@ -250,7 +288,14 @@ function BuildingSelection({ userData, setUserData }) {
                 bulkDisplayPrice = bulkPricing.totalPrice.toFixed(2);
               } else {
                 // For solo, use existing logic
-                if (facility.noDiscount) {
+                if (facility.hasResidentOption) {
+                  // Water Essence with resident pricing
+                  if (selectedBuilding?.id === facility.id && isResident !== null) {
+                    displayPrice = isResident ? facility.residentPrice.toFixed(2) : facility.nonResidentPrice.toFixed(2);
+                  } else {
+                    displayPrice = `${facility.residentPrice}/${facility.nonResidentPrice}`;
+                  }
+                } else if (facility.noDiscount) {
                   displayPrice = facility.price.toFixed(2);
                 } else if (facility.hasClubOption && isClubMember) {
                   displayPrice = (facility.price * 0.5).toFixed(2);
@@ -273,7 +318,17 @@ function BuildingSelection({ userData, setUserData }) {
                   <div className="building-price">
                     {userData.ticketType === 'bulk' ? (
                       <div className="bulk-price-display">
-                        <div className="price-per-unit">₱{facility.price}.00/person</div>
+                        <div className="price-per-unit">
+                          {facility.hasResidentOption ? (
+                            isResident !== null ? (
+                              <>₱{(isResident ? facility.residentPrice : facility.nonResidentPrice)}/person</>
+                            ) : (
+                              <>₱10/15 per person</>
+                            )
+                          ) : (
+                            <>₱{facility.price}.00/person</>
+                          )}
+                        </div>
                         <div className="total-price">₱{bulkDisplayPrice} total</div>
                       </div>
                     ) : (
@@ -284,7 +339,7 @@ function BuildingSelection({ userData, setUserData }) {
                             <span className="discounted-price">₱{displayPrice}</span>
                           </>
                         ) : (
-                          `₱${facility.price}.00`
+                          `₱${typeof displayPrice === 'number' ? displayPrice.toFixed(2) : displayPrice}`
                         )}
                       </>
                     )}
@@ -294,7 +349,7 @@ function BuildingSelection({ userData, setUserData }) {
             })}
           </div>
 
-          {/* Club Member Option for Badmintonnis Court */}
+          {/* Club Member Option for Badminton/Tennis Court */}
           {showClubMemberOption && selectedBuilding?.hasClubOption && (
             <div className="club-member-option">
               <h3>Are you a club member?</h3>
@@ -314,6 +369,27 @@ function BuildingSelection({ userData, setUserData }) {
               </div>
             </div>
           )}
+
+          {/* Resident Option for Water Essence */}
+          {showResidentOption && selectedBuilding?.hasResidentOption && (
+            <div className="club-member-option">
+              <h3>Are you a campus resident?</h3>
+              <div className="club-option-buttons">
+                <button
+                  className={`club-btn ${isResident === true ? 'active' : ''}`}
+                  onClick={() => handleResidentSelection(true)}
+                >
+                  Yes, Campus Resident (₱{selectedBuilding.residentPrice})
+                </button>
+                <button
+                  className={`club-btn ${isResident === false ? 'active' : ''}`}
+                  onClick={() => handleResidentSelection(false)}
+                >
+                  No, Non-Resident (₱{selectedBuilding.nonResidentPrice})
+                </button>
+              </div>
+            </div>
+          )}
           
           <div className="building-controls">
             <button onClick={handleBack} className="back-button">
@@ -322,7 +398,7 @@ function BuildingSelection({ userData, setUserData }) {
             <button
               className="payment-button"
               onClick={proceedToPayment}
-              disabled={!selectedBuilding || (selectedBuilding?.hasClubOption && isClubMember === null)}
+              disabled={!selectedBuilding || (selectedBuilding?.hasClubOption && isClubMember === null) || (selectedBuilding?.hasResidentOption && isResident === null)}
             >
               Proceed to Payment
             </button>

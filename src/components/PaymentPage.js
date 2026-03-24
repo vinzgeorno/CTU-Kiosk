@@ -6,7 +6,6 @@ import './PaymentPage.css';
 
 function PaymentPage({ userData, setUserData }) {
   const navigate = useNavigate();
-  
   const [insertedAmount, setInsertedAmount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hardwareStatus, setHardwareStatus] = useState(null);
@@ -23,10 +22,19 @@ function PaymentPage({ userData, setUserData }) {
   useEffect(() => {
     console.log('🎯 PaymentPage Mounted');
     
-    // Initialize WebSocket connection for real hardware
+    // Initialize WebSocket connection for real hardware first
     initializeWebSocket();
 
+    // Fallback: Initialize simulator ONLY if WebSocket fails
+    const simulatorTimeout = setTimeout(() => {
+      if (connectionStatus === 'disconnected') {
+        console.log('⚠️ Real hardware unavailable - Starting simulator...');
+        initializeSimulator();
+      }
+    }, 2000); // Wait 2 seconds for real hardware connection
+
     return () => {
+      clearTimeout(simulatorTimeout);
       paymentHardware.stopMonitoring();
       if (ws) {
         ws.close();
@@ -34,6 +42,29 @@ function PaymentPage({ userData, setUserData }) {
       console.log('🎯 PaymentPage Unmounted');
     };
   }, []);
+
+  /**
+   * Initialize simulator fallback (only if real hardware unavailable)
+   */
+  const initializeSimulator = () => {
+    paymentHardware.initialize({
+      onCoinDetected: (data) => {
+        console.log('💰 Simulator Coin Detected:', data);
+        setInsertedAmount(prev => prev + data.value);
+        addLog(`[COIN] ✓ ${data.pulses} pulses → ₱${data.value}`);
+      },
+      onBillDetected: (data) => {
+        console.log('💵 Simulator Bill Detected:', data);
+        setInsertedAmount(prev => prev + data.amount);
+        addLog(`[BILL] ✓ ${data.pulses} pulses → ₱${data.amount}`);
+      },
+      onPaymentUpdate: (data) => {
+        setHardwareStatus(data);
+      }
+    });
+
+    paymentHardware.startMonitoring();
+  };
 
   /**
    * Initialize WebSocket connection to backend for real-time pulse updates
@@ -95,7 +126,7 @@ function PaymentPage({ userData, setUserData }) {
       newWs.onclose = () => {
         console.log('🔌 [WebSocket] Disconnected from backend');
         setConnectionStatus('disconnected');
-        addLog('🔌 Connection closed');
+        addLog('🔌 Connection closed - simulator mode');
       };
 
       setWs(newWs);
@@ -166,8 +197,8 @@ function PaymentPage({ userData, setUserData }) {
       // Calculate change
       const changeAmount = insertedAmount - userData.ticketPrice;
       
-      // Use existing transaction ID from userData (created in AgeSelection)
-      const transactionId = userData.transactionId;
+      // Create transaction ID
+      const transactionId = 'TKT-' + Date.now();
       
       console.log('🎫 Processing Payment:', {
         transactionId,
@@ -177,6 +208,8 @@ function PaymentPage({ userData, setUserData }) {
       });
 
       // Auto-dispense change if needed (only 5PHP coins)
+      // DISABLED - Change amount will be shown in ticket instead
+      /*
       if (changeAmount > 0) {
         if (changeAmount % 5 === 0) {
           console.log(`💰 AUTO-DISPENSING CHANGE: ₱${changeAmount}`);
@@ -194,10 +227,12 @@ function PaymentPage({ userData, setUserData }) {
       } else {
         addLog(`ℹ️ No change needed`);
       }
+      */
       
       // Update user data with payment information
       setUserData({
         ...userData,
+        transactionId: transactionId,
         paymentMethod: 'mixed', // Both coin and bill accepted
         amountInserted: insertedAmount,
         changeGiven: changeAmount
@@ -251,22 +286,20 @@ function PaymentPage({ userData, setUserData }) {
                   )}
                 </div>
 
-                <div className="payment-buttons">
-                  <button
-                    className="confirm-payment-button"
-                    onClick={processPayment}
-                    disabled={insertedAmount < userData.ticketPrice || isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="processing-spinner"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      'Confirm Payment'
-                    )}
-                  </button>
-                </div>
+                <button
+                  className="confirm-payment-button"
+                  onClick={processPayment}
+                  disabled={insertedAmount < userData.ticketPrice || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="processing-spinner"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm Payment'
+                  )}
+                </button>
               </div>
             </div>
 
