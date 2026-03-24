@@ -27,6 +27,7 @@ def print_ticket(data):
         discount_price = data.get('discountPrice', 0)
         has_discount = data.get('hasDiscount', False)
         transaction_id = data.get('transactionId', '')
+        change_given = data.get('changeGiven', 0)
         
         # Compact layout to save paper
         printer.set(align='center')
@@ -47,6 +48,10 @@ def print_ticket(data):
             printer.text(f'PAY: ₱{discount_price}\n')
         else:
             printer.text(f'PAY: ₱{discount_price}\n')
+        
+        # Only print change if there is change to give
+        if change_given > 0:
+            printer.text(f'CHANGE: ₱{change_given:.2f}\n')
         
         printer.text('Valid: 11:59 PM\n')
         printer.text('=' * 32 + '\n')

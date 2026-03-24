@@ -278,7 +278,7 @@ function BuildingSelection({ userData, setUserData }) {
           <div className="buildings-grid">
             {facilities.map((facility) => {
               const Icon = facility.icon;
-              let displayPrice = facility.price.toFixed(2);
+              let displayPrice = facility.price ? facility.price.toFixed(2) : '0.00';
               let showDiscount = false;
               let bulkDisplayPrice = null;
 

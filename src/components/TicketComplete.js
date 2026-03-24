@@ -16,6 +16,13 @@ function TicketComplete({ userData, setUserData }) {
     // Initialize database and save ticket data
     initializeAndSaveTicket();
     
+    console.log('🎫 TicketComplete loaded with userData:', {
+      ticketPrice: userData.ticketPrice,
+      changeGiven: userData.changeGiven,
+      amountInserted: userData.amountInserted,
+      transactionId: userData.transactionId
+    });
+    
     // Generate QR code when component mounts
     generateQRCode();
 
@@ -58,11 +65,14 @@ function TicketComplete({ userData, setUserData }) {
         age: userData.age || null,
         facility: userData.selectedBuilding?.name,
         amountPaid: userData.ticketPrice,
+        changeGiven: userData.changeGiven || 0,
         ticketType: userData.ticketType || 'solo',
         totalPeople: userData.totalPeople || 1,
         peopleBelow12: userData.peopleBelow12 || 0,
         people12Above: userData.people12Above || 0
       };
+
+      console.log('💾 Saving ticket to database:', ticketData);
 
       const result = await database.insertTicket(ticketData);
       
@@ -306,10 +316,10 @@ function TicketComplete({ userData, setUserData }) {
                     <span className="price-label">Amount Paid</span>
                     <span className="price-value">₱{userData.ticketPrice.toFixed(2)}</span>
                   </div>
-                  {userData.changeGiven > 0 && (
+                  {userData.changeGiven !== undefined && userData.changeGiven > 0 && (
                     <div className="change-info">
                       <span className="change-label">Change to Give</span>
-                      <span className="change-value">₱{userData.changeGiven.toFixed(2)}</span>
+                      <span className="change-value">₱{parseFloat(userData.changeGiven).toFixed(2)}</span>
                     </div>
                   )}
                 </div>

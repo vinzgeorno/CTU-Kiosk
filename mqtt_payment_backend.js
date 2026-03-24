@@ -417,7 +417,7 @@ app.post('/print-ticket', async (req, res) => {
   console.log('📨 [PRINTER] Received print request:', req.body);
   
   try {
-    const { age, facility, ticketNumber, originalPrice, discountPrice, hasDiscount, transactionId } = req.body;
+    const { age, facility, ticketNumber, originalPrice, discountPrice, hasDiscount, transactionId, changeGiven } = req.body;
     
     if (!transactionId || !facility) {
       console.error('❌ [PRINTER] Missing required fields:', { transactionId, facility });
@@ -432,7 +432,8 @@ app.post('/print-ticket', async (req, res) => {
       originalPrice,
       discountPrice,
       hasDiscount,
-      transactionId
+      transactionId,
+      changeGiven: changeGiven || 0
     };
 
     console.log('🖨️ [PRINTER] Calling Python print script...');
